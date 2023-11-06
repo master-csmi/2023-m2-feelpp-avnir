@@ -4,9 +4,9 @@ build-backend = "scikit_build_core.build"
 
 
 [project]
-name = "feelpp-project"
+name = "2023-m2-feelpp-sonorhc"
 version = "3.0.1"
-description="Feel++ Template Project"
+description="2023 M2 Feelpp Sonorhc"
 readme = "README.md"
 authors = [
   { name = "Christophe Prud'homme", email = "christophe.prudhomme@cemosis.fr" },
