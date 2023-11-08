@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-      <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Feel++ Template Project :: Feel++ Template Project</title>
-    <link rel="canonical" href="https://feelpp.github.io/feelpp-project/feelpp-project/index.html">
+    <title>Overview of 2023 M2 Feelpp Sonorhc :: 2023 M2 Feelpp Sonorhc</title>
+    <link rel="canonical" href="https://feelpp.github.io/2023-m2-feelpp-sonorhc/2023-m2-feelpp-sonorhc/overview.html">
     <meta name="generator" content="Antora 3.1.4">
     <link rel="stylesheet" href="../_/css/site.css">
 <link rel="icon" href="../_/img/favicon.ico" type="image/x-icon">
@@ -93,13 +93,13 @@ MathJax.Hub.Config({
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.js" integrity="sha384-jmxIlussZWB7qCuB+PgKG1uLjjxbVVIayPJwi6cG6Zb4YKq0JIw+OMnkkEC7kYCq" crossorigin="anonymous"></script>-->
 <script>var uiRootPath = '../_'</script>
 
-</head>
-<body class="article docs-home">
+  </head>
+  <body class="article">
 <header class="header">
     <nav class="navbar navbar-expand-sm bg-dark navbar-dark navbar-template-project" style="border-top: 4px solid #9E9E9E">
         <div class="navbar-brand">
             <div class="navbar-item feelpp-logo">
-                <a href="https://feelpp.github.io/feelpp-project">Feel++ Template Project</a>
+                <a href="https://feelpp.github.io/2023-m2-feelpp-sonorhc">2023 M2 Feelpp Sonorhc</a>
             </div>
             <button class="navbar-burger" data-target="topbar-nav">
                 <span></span>
@@ -125,10 +125,9 @@ MathJax.Hub.Config({
         </div>
     </nav>
 </header>
-
 <div class="body">
-  <a href="#" class="menu-expand-toggle"></a>
-<div class="nav-container" data-component="feelpp-project" data-version="">
+<a href="#" class="menu-expand-toggle"></a>
+<div class="nav-container" data-component="2023-m2-feelpp-sonorhc" data-version="">
   <aside class="nav">
     <div class="panels">
 <div class="nav-panel-menu is-active" data-panel="menu">
@@ -137,13 +136,13 @@ MathJax.Hub.Config({
 <ul class="nav-list">
   <li class="nav-item" data-depth="0">
 <ul class="nav-list">
-  <li class="nav-item is-current-page" data-depth="1">
+  <li class="nav-item" data-depth="1">
     <a class="nav-link" href="index.html">Introduction</a>
   </li>
   <li class="nav-item" data-depth="1">
     <a class="nav-link" href="quickstart.html">Quickstart</a>
   </li>
-  <li class="nav-item" data-depth="1">
+  <li class="nav-item is-current-page" data-depth="1">
     <a class="nav-link" href="overview.html">Overview</a>
   </li>
   <li class="nav-item" data-depth="1">
@@ -198,18 +197,66 @@ MathJax.Hub.Config({
     </div>
   </aside>
 </div>
-  <main class="article">
-    <div class="toolbar" role="navigation">
-      <div class="toolbar-wrapper">
-        <button class="nav-toggle"></button>
-      </div>
-    </div>
+<main class="article">
+<div class="toolbar" role="navigation">
+  <button class="nav-toggle"></button>
+    <a href="index.html" class="home-link"></a>
+  <nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Template Project</a></li>
+    <li><a href="overview.html">Overview</a></li>
+  </ul>
+</nav>
 
-    <div class="content">
-      <article class="doc">
-<h1 class="page">Feel++ Template Project</h1>
-<div class="paragraph lead">
-<p>Feel++ Template Project is a GitHub repository template providing a starting point for Feel++ projects.</p>
+  
+    <div class="edit-this-page"><a href="https://github.com/master-csmi/2023-m2-feelpp-sonorhc/edit/master/docs/modules/ROOT/pages/overview.adoc">Edit this Page</a></div>
+  
+  <div class="page-downloads">
+  <span class="label">Download as</span>
+  <ul class="download-options">
+    <li>
+      <a onclick="print(this)" href="#" data-toggle="tooltip" data-placement="left" title="Print to PDF"
+         class="pdf-download">
+        <img class="pdf-file-icon icon" src="../_/img/pdf.svg"/> .pdf
+      </a>
+    </li>
+  </ul>
+</div>
+</div>
+
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Overview of 2023 M2 Feelpp Sonorhc</h1>
+<div class="sect1">
+<h2 id="_organisation"><a class="anchor" href="#_organisation"></a>1. Organisation</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The directory structure of the project is as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>.
+├── docs
+│   ├── antora
+│   └── modules
+└── src
+    └── cases
+
+5 directories</pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>docs</code> directory contains the documentation of the project and uses antora to generate the documentation.</p>
+</li>
+<li>
+<p>The <code>src</code> directory contains initially some C++ and Python Feel++ source code of the project to help you get started.</p>
+</li>
+</ul>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -218,105 +265,72 @@ MathJax.Hub.Config({
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-this documentation serves as a template for your project. You can edit it to fit your needs. You can also remove it if you don&#8217;t need it.
+<div class="paragraph">
+<p>Feel++ is a C++ library for the numerical simulation of partial differential equations. It is designed to be easy to use and to extend.
+Feel++ is a free software distributed under the terms of the GNU General Public License version 3.
+The documentation is available <a href="https://docs.feelpp.org">&gt; here</a>.</p>
+</div>
 </td>
 </tr>
 </table>
 </div>
-<div class="sidebarblock examp">
-<div class="content">
-<div class="title">Coding with Feel++ in C++ or Python</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_to_build_the_project"><a class="anchor" href="#_how_to_build_the_project"></a>2. How to build the project</h2>
+<div class="sectionbody">
 <div class="paragraph">
-<p><a href="overview.html" class="xref page">Feel++ C++ and Python</a> codes are available to help you get started with using and coding with Feel++.</p>
+<p>You need first to follow the <a href="quickstart.html" class="xref page">quickstart</a> to get the Feel++ environment.
+The installation procedure uses <a href="env/cmake.html" class="xref page">Cmake</a> for the C++ programs and create a bundle of this project.
+The steps are as follows:</p>
 </div>
-</div>
-</div>
-<div class="sidebarblock examp">
+<div class="listingblock">
 <div class="content">
-<div class="title">Documenting your work with AsciiDoc and Antora</div>
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ cmake --preset default <i class="conum" data-value="1"></i><b>(1)</b>
+$ cmake --build --preset default <i class="conum" data-value="2"></i><b>(2)</b>
+$ cmake --build --preset default -t install <i class="conum" data-value="3"></i><b>(3)</b>
+$ ctest --preset default <i class="conum" data-value="4"></i><b>(4)</b>
+$ cmake --build --preset default -t package <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Configure the project</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Build the project</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Install the project</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Run the tests</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Package the project</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_to_start_documenting_your_work"><a class="anchor" href="#_how_to_start_documenting_your_work"></a>3. How to start documenting your work</h2>
+<div class="sectionbody">
 <div class="paragraph">
-<p>The documentation is written using the <a href="https://docs.asciidoctor.org">Asciidoc plain text format</a> and <a href="https://docs.antora.org">Antora</a> to produce the documentation website. Checkout <a href="env/antora.html" class="xref page">this page</a>, it is here to help you get started with creating documentation.</p>
+<p>The documentation is written in AsciiDoc and uses Antora to generate the documentation. Please check the project <a href="env/antora.html" class="xref page">Antora</a> page to get started.</p>
 </div>
 </div>
 </div>
 </article>
-    </div>
-
-    <div class="content">
-      <article class="doc">
-        <div class="actions">
-          <a href="https://join.slack.com/t/feelpp/shared_invite/zt-2qe0q9hw-4pVbhohCXUE6Po9Ma8dbiQ" class="button join-chat">Join Community</a>
-        </div>
-      </article>
-    </div>
-
-    <div class="content">
-      <article class="doc">
-        <h2>Recommended Resources</h2>
-        <div class="books">
-            <div class="book-cover">
-  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 262.222">
-    <a href="https://docs.feelpp.org">
-      <linearGradient gradientUnits="userSpaceOnUse" x1="99.501" y1="2090.696" x2="99.501" y2="2352.807"
-                      id="gradient-feelpp-docs"
-                      gradientTransform="matrix(0.795741, 0.605637, -0.762818, 1.000426, 1715.531158, -2151.904888)">
-        <stop offset="0" style="stop-color: #a6024f;"/>
-        <stop offset="1" style="stop-color: rgba(0, 0, 0, 1)"/>
-      </linearGradient>
-      <path fill-rule="evenodd" stroke="#000" stroke-width=".111"
-            d="M 0 0 L 199.889 0 L 199.889 262.111 L 0 262.111 L 0 0 Z" style="fill: url(#gradient-feelpp-docs);">
-        <title>background</title>
-      </path>
-      <use href="../_/img/book_cover_simple.svg#book" width="200" height="262.222" x="0" y="0"/>
-      <text x="95" y="92" style="font-size: 14px;
-    text-anchor: middle;
-    font-family: 'DejaVu Sans', serif;
-    font-weight: 800;
-    text-align: start;
-    letter-spacing: 0;
-    word-spacing: 0;
-    fill: white;
-    font-style: italic;">
-        Documentation
-      </text>
-    </a>
-  </svg>
+  </div>
+</main>
 </div>
-            <div class="book-cover">
-  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 262.222">
-    <a href="https://docs.feelpp.org">
-      <linearGradient gradientUnits="userSpaceOnUse" x1="99.501" y1="2090.696" x2="99.501" y2="2352.807"
-                      id="gradient-feelpp-docs"
-                      gradientTransform="matrix(0.795741, 0.605637, -0.762818, 1.000426, 1715.531158, -2151.904888)">
-        <stop offset="0" style="stop-color: #220391;"/>
-        <stop offset="1" style="stop-color: rgba(0, 0, 0, 1)"/>
-      </linearGradient>
-      <path fill-rule="evenodd" stroke="#000" stroke-width=".111"
-            d="M 0 0 L 199.889 0 L 199.889 262.111 L 0 262.111 L 0 0 Z" style="fill: url(#gradient-feelpp-docs);">
-        <title>background</title>
-      </path>
-      <use href="../_/img/book_cover_simple.svg#book" width="200" height="262.222" x="0" y="0"/>
-      <text x="95" y="92" style="font-size: 14px;
-    text-anchor: middle;
-    font-family: 'DejaVu Sans', serif;
-    font-weight: 800;
-    text-align: start;
-    letter-spacing: 0;
-    word-spacing: 0;
-    fill: white;
-    font-style: italic;">
-        Antora UI
-      </text>
-    </a>
-  </svg>
-</div>
-        </div>
-      </article>
-    </div>
-
-  </main>
-</div>
-
 <footer class="footer" style="border-top: 2px solid #e9e9e9; background-color: #fafafa; padding-bottom: 2em; padding-top: 2em;">
     <div class="container" style="display: flex; flex-direction: column; align-items: center; gap: 0.5em;">
         <div>
@@ -351,5 +365,5 @@ function toggleFullScreen() {
    }
 }
 </script>
-</body>
+  </body>
 </html>
