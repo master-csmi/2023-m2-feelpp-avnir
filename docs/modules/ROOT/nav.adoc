@@ -3,6 +3,7 @@
 * xref:overview.adoc[]
 * xref:examples/index.adoc[Examples]
 ** xref:examples/fin.adoc[Thermal Fin]
+** xref:examples/wave-fd.adoc[Acoustic Wave FDTD]
 * Setting up the development Environment
 ** xref:env/cmake.adoc[]
 ** xref:env/antora.adoc[]
