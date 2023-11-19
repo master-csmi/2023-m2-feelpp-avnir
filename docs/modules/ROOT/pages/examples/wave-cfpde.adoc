@@ -1,0 +1,7 @@
+= Wave equation using CFPDEs Toolbox
+Obèd SABA
+:page-plotly: true
+:page-jupyter: true
+:page-tags: case
+:page-illustration: fin2d-4.png
+:description: We simulate the wave equation using CFPDEs Toolbox
