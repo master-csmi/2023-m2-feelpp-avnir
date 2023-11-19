@@ -8,7 +8,7 @@ Obèd SABA
 
 == Problem Statement
 
-The unique thing about CFPDEs is that it allows you to specify the PDE problem to be solved using a configuration file format: stem:[\texttt{JSON}] . These configuration files define the mathematical models, boundary and initial conditions, parameters, domain, and other necessary information to describe the problem. This makes stem:[\texttt{CFPDEs}] very flexible and adaptable to a wide range problems.
+The unique thing about stem:[\texttt{CFPDEs}] is that it allows you to specify the PDE problem to be solved using a configuration file format: stem:[\texttt{JSON}] . These configuration files define the mathematical models, boundary and initial conditions, parameters, domain, and other necessary information to describe the problem. This makes stem:[\texttt{CFPDEs}] very flexible and adaptable to a wide range problems.
 
 
 Our project focuses on simulating acoustic wave propagation in a 2D urban environment. Our approach involves transforming the classic second-order acoustic wave equation into a first-order system to be compatible with the stem:[\texttt{CFPDEs toolbox}], which primarily handles first-order partial differential equations stem:[\texttt{(PDEs).}] 
@@ -85,7 +85,7 @@ The stem:[\texttt{JSON}] file configures the following:
 * *Initial and Boundary Conditions (`InitialConditions`, `BoundaryConditions`)*: Definitions of initial values for pressure and velocity, and boundary conditions.
 
 .JSON Configuration for the square
-[%dynamic,bash]
+[source,json]
 ----
 
 {
@@ -203,13 +203,14 @@ The stem:[\texttt{JSON}] file configures the following:
 ----
 
 The CFG file is used to configure the execution:
+
 .CFG Configuration
 * *Directory and Dimension*: Settings for the working directory and the dimension of the simulation.
 * *JSON File Path*: Specification of the stem:[\texttt{JSON}] file to use.
 * *Solver Configuration*: Choice of solver and parameters for monitoring the solution.
 
 .CFG Configuration for the square
-[%dynamic,bash]
+[source,ini]
 ----
 
 directory=onde
@@ -246,58 +247,50 @@ The simulation can be executed using either Docker or on a computing cluster. Th
 
 Docker offers a convenient and isolated environment for running the simulation. Follow these steps to execute the simulation using Docker:
 
-1. *Pulling the Docker Image*: Begin by pulling the Feel++ Docker image using the command:
+* *Pulling the Docker Image*: Begin by pulling the Feel++ Docker image using the command:
 
-[%dynamic,bash]
+[source,bash]
 ----
 docker run --rm -it -v $HOME/feel:/feel ghcr.io/feelpp/feelpp:jammy
 ----
 
 This command downloads the Feel++ image and mounts your `$HOME/feel` directory to the Docker container for persistent data storage.
-2. *Running the Simulation*: Inside the Docker container, launch the simulation with:
 
-[%dynamic,bash]
+* *Running the Simulation*: Inside the Docker container, launch the simulation with:
+
+[source,bash]
 ----
 feelpp_toolbox_coefficientformpdes --config-file onde.cfg
 ----
-This command initiates the simulation using the settings defined in `onde.cfg`.
-3. *Retrieving Simulation Results*: After the simulation is complete, retrieve the results from the Docker container:
 
-[%dynamic,bash]
+This command initiates the simulation using the settings defined in `onde.cfg`.
+
+* *Retrieving Simulation Results*: After the simulation is complete, retrieve the results from the Docker container:
+
+[source,bash]
 ----
 cp -R ~/feelppdb/onde /feel/
 ----
 
 This step copies the simulation results to the mounted directory, making them accessible outside the Docker container.
-4. *Visualizing Results in ParaView*: Open the results in ParaView for visualization and analysis.
 
+* *Visualizing Results in ParaView*: Open the results in ParaView for visualization and analysis.
 
 === On a Computing Cluster
 
 For those with access to a computing cluster with Feel++ installed, the simulation can be executed directly on the cluster:
 
-1. *Accessing the Cluster*: Log into your cluster where Feel++ is already installed.
+* *Accessing the Cluster*: Log into your cluster where Feel++ is already installed.
 
-2. *Executing the Simulation*: Run the simulation using the same command as you would in Docker:
+* *Executing the Simulation*: Run the simulation using the same command as you would in Docker:
 
-[%dynamic,bash]
+[source,bash]
 ----
 feelpp_toolbox_coefficientformpdes --config-file onde.cfg
 ----
-Ensure that `onde.cfg` and all necessary files are accessible on the cluster.
+Ensure that `onde.cfg` and `square2d.geo` are accessible on the cluster.
 
 === Post-Processing
 
 Regardless of the execution method (Docker or cluster), after the simulation is completed, the results need to be collected and analyzed. If using Cluster, remember to transfer the output data from the Cluster container to your host machine for further processing.
 
-== Tutoriel Vidéo
-
-For more dynamic and visual explanation, you can watch the following video tutorial on the simulation of acoustic wave propagation using CFPDEs Toolbox
-
-.Video Tutorial on Acoustic Wave Propagation Simulation
-++++
-<video width="560" height="315" controls>
-  <source src="../ROOT/images/square-wave-toolbox.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-++++
