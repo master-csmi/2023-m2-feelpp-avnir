@@ -28,3 +28,15 @@ Became:
             "c": "4"
         }
 ```
+
+During the timeloop, this:
+```cpp
+            lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
+                    _expr =  (2*idv(un_) - idv(u_)) * id(v_) / pow(bdf_->timeStep(),2) + gradv(un_)*trans(grad(v_)) + expr(c) * idv( un_ ) * id( v_ ) );
+```
+
+Became :
+```cpp
+            lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
+                    _expr =  (2*idv(un_) - idv(u_)) * id(v_) + pow(bdf_->timeStep(),2) * (gradv(un_)*trans(grad(v_)) + expr(c) * idv( un_ ) * id( v_ ) ));
+```

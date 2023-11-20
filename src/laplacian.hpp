@@ -260,6 +260,9 @@ void Laplacian<Dim, Order>::processBoundaryConditions()
         {
             LOG( INFO ) << fmt::format( "flux {}: {}", bc, value.dump() );
             auto flux = value["expr"].get<std::string>();
+            std::cout << " *** Informations during boundary condition processing ***" << std::endl;
+            std::cout << "flux = " << flux << std::endl;
+            std::cout << "bc = " << bc << std::endl;
 
             l_ += integrate( _range = markedfaces( support( Xh_ ), bc ),
                     _expr = expr( flux ) * id( v_ ) ); // flux 0 + PML condition
@@ -305,15 +308,17 @@ void Laplacian<Dim, Order>::run()
 template <int Dim, int Order>
 void Laplacian<Dim, Order>::timeLoop()
 {
-    element_ un_, un1_;
-    un_= u_;
+    element_ un1_, un_;
+    // set un_ to u_ since u_ is in the initial condition and un_ is the solution
+    // at the previous time step and that the system is in a steady state at t = 0
+    un1_= u_;
+    un_ = u_;
     int it = 0;
     // time loop
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
         at_ = a_;
         lt_ = l_;
-        un1_ = u_;
 
         for ( auto [key, material] : specs_["/Models/laplacian/Materials"_json_pointer].items() )
         {
@@ -321,13 +326,16 @@ void Laplacian<Dim, Order>::timeLoop()
 
             auto c = specs_[nl::json::json_pointer( matC )].get<std::string>();
 
+            // lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
+                    // _expr =  (2*idv(u_) - idv(un_)) * id(v_) + pow(bdf_->timeStep(),2) *(gradv(un_)*trans(grad(v_)) + expr(c) * idv( un_ ) * id( v_ ) ));
             lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
-                    _expr =  (2*idv(un_) - idv(un1_)) * id(v_) / pow(bdf_->timeStep(),2) + gradv(un_)*trans(grad(v_)) + expr(c) * idv( un_ ) * id( v_ ) );
+                    _expr =  (2*idv(u_) - idv(un_)) * id(v_) + pow(bdf_->timeStep(),2) *(gradv(un_)*trans(grad(v_)) + expr(c) * id( v_ ) ));
         }
-        at_.solve( _rhs = lt_, _solution = u_ );
+        at_.solve( _rhs = lt_, _solution = un1_ );
+        un_ = u_;
+        u_ = un1_;
 
         this->exportResults();
-        un_ = u_;
         it+=1;
     }
 }
