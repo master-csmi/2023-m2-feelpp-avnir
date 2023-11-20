@@ -1,0 +1,98 @@
+{
+    "Name": "Onde 2D",
+    "ShortName": "onde2d",
+    "Models":{
+        "laplacian":{
+            "name": "omega",
+            "Materials": [
+                "Omega"
+            ]
+        }
+    },
+    "Meshes":{
+        "laplacian":{
+            "Import":{
+                "filename":"$cfgdir/../square2d.geo",
+                "partition":0
+            }
+        }
+    },
+    "Spaces": {
+        "laplacian": {
+            "Domain": {
+
+
+            }
+        }
+    },
+    "TimeStepping":
+    {
+        "laplacian" :{
+            "steady": false,
+            "order" : 1,
+            "start": 0.0,
+            "end": 10,
+            "step": 0.1
+        }
+    },
+    "Materials":
+    {
+        "Omega":{
+            "c": "4",
+            "x0":"1",
+            "y0":"1",
+            "sigma":"0.05",
+            "a": "0.3"
+        },
+        "Gamma":{
+            "c": "4",
+            "x0":"1",
+            "y0":"1",
+            "sigma":"0.05",
+            "a": "0.3"
+        }
+    },
+    "Parameters": {
+        "c": "4",
+        "x0":1,
+        "y0":1,
+        "sigma":0.05,
+        "a": 0.3,
+        "h":0.05
+    },
+    "BoundaryConditions":{
+        "laplacian": {
+            "flux": {
+                "Gamma":{
+                    "expr":"0"
+                }
+            },
+            "pressure": {
+                "Gamma":{
+                    "expr":"0"
+                }
+            }
+        }
+    },
+    "InitialConditions":{
+        "laplacian":{
+            "Expression": {
+                "markers": "Omega",
+                "expr": "0.3 * exp(-((x-1)*(x-1)+(y-1)*(y-1))/(0.5)):x:y"
+            }
+        },
+        "laplacian2":{
+            "flux":{
+                "Expression": {
+                    "myic": {
+                        "markers": [
+                            "Gamma",
+                            "Omega"
+                        ],
+                        "expr": "0"
+                    }
+                }
+            }
+        }
+    }
+}
