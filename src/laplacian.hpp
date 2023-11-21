@@ -160,7 +160,7 @@ private:
 template <int Dim, int Order>
 Laplacian<Dim, Order>::Laplacian(nl::json const& specs) : specs_(specs)
 {
-    initialize();
+    
 }
 
 // Initialization
@@ -196,6 +196,7 @@ void Laplacian<Dim, Order>::initialize()
     // expr0_.setParameterValues({{"A", A}, {"x0", x0}, {"y0", y0}, {"sigma", sigma}});
     std::cout << "expr0_ = " << expr0_ << std::endl;
     std::cout << "With parameters : a = " << A << ", x0 = " << x0 << ", y0 = " << y0 << ", sigma = " << sigma << std::endl;
+    
     u_.on(_range=elements(mesh_), _expr= expr0_);
 
     a_ = form2( _test = Xh_, _trial = Xh_ );
@@ -308,12 +309,6 @@ void Laplacian<Dim, Order>::run()
 template <int Dim, int Order>
 void Laplacian<Dim, Order>::timeLoop()
 {
-    element_ un1_, un_;
-    // set un_ to u_ since u_ is in the initial condition and un_ is the solution
-    // at the previous time step and that the system is in a steady state at t = 0
-    un1_= u_;
-    un_ = u_;
-    int it = 0;
     // time loop
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
@@ -329,14 +324,11 @@ void Laplacian<Dim, Order>::timeLoop()
             // lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
                     // _expr =  (2*idv(u_) - idv(un_)) * id(v_) + pow(bdf_->timeStep(),2) *(gradv(un_)*trans(grad(v_)) + expr(c) * idv( un_ ) * id( v_ ) ));
             lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
-                    _expr =  (2*idv(u_) - idv(un_)) * id(v_) + pow(bdf_->timeStep(),2) *(gradv(un_)*trans(grad(v_)) + expr(c) * id( v_ ) ));
+                    _expr =  (2*idv(u_) - idv(bdf_->unknown(0))) * id(v_) + pow(bdf_->timeStep(),2) *(gradv(u_)*trans(grad(v_)) + expr(c) * id( v_ ) ));
         }
-        at_.solve( _rhs = lt_, _solution = un1_ );
-        un_ = u_;
-        u_ = un1_;
+        at_.solve( _rhs = lt_, _solution = u_ );
 
         this->exportResults();
-        it+=1;
     }
 }
 
