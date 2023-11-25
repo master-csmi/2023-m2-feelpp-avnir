@@ -24,11 +24,11 @@
 cmake_minimum_required(VERSION 3.21.0)
 
 project(
-  2023-m2-feelpp-sonorhc
+  feelpp-sonorhc
   VERSION 3.0.1 )
 
 set(EXTRA_VERSION "")
-set(PROJECT_SHORTNAME "2mfs")
+set(PROJECT_SHORTNAME "fs")
 
 include(GNUInstallDirs)
 
