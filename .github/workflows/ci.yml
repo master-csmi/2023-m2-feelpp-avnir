@@ -112,7 +112,7 @@ jobs:
         # Artifact name
         name: 2023-m2-feelpp-sonorhc-artifacts
         # Directory containing files to upload
-        path: build/default/assets/2023-m2-feelpp-sonorhc-*
+        path: build/default/assets/feelpp-sonorhc-*
   deliver:
     runs-on: self-ubuntu-22.04
     needs: build_code
