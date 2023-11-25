@@ -27,6 +27,10 @@ classifiers = [
 test = ["pytest"]
 
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+
 [tool.scikit-build]
 wheel.expand-macos-universal-tags = true
 
