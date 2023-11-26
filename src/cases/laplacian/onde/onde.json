@@ -1,24 +1,22 @@
 {
-    "Name": "Onde 2D",
-    "ShortName": "onde2d",
-    "Models":{
-        "laplacian":{
-            "name": "omega",
-            "Materials": [
-                "Omega"
-            ]
+    "Name": "Square 2D",
+    "ShortName": "square2d",
+    "Models": {
+        "wave": {
+            "name": "Omega"
         }
     },
-    "Meshes":{
-        "laplacian":{
-            "Import":{
-                "filename":"$cfgdir/../square2d.geo",
-                "partition":0
+    "Meshes": {
+        "wave": {
+            "Import": {
+                "filename": "$cfgdir/square.geo",
+                "partition": 0,
+                "h": 0.03
             }
         }
     },
     "Spaces": {
-        "laplacian": {
+        "wave": {
             "Domain": {
 
 
@@ -27,71 +25,54 @@
     },
     "TimeStepping":
     {
-        "laplacian" :{
+        "wave" :{
             "steady": false,
-            "order" : 1,
+            "order" : 2,
             "start": 0.0,
-            "end": 10,
-            "step": 0.1
+            "end": 4,
+            "step": 0.0075
         }
     },
-    "Materials":
-    {
-        "Omega":{
-            "c": "4",
-            "x0":"1",
-            "y0":"1",
-            "sigma":"0.05",
-            "a": "0.3"
-        },
-        "Gamma":{
-            "c": "4",
-            "x0":"1",
-            "y0":"1",
-            "sigma":"0.05",
-            "a": "0.3"
+    "InitialConditions": {
+        "wave": {
+            "pressure": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.3*exp(-((x-1.0)^2+(y-1.0)^2)/(2*0.05^2)):x:y"
+                    }
+                }
+            },
+            "velocity": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.0"
+                    }
+                }
+            }
+        }
+    },
+    "BoundaryConditions": {
+        "wave": {
+            "flux": {
+                "Gamma": {
+                    "expr": "0.0"
+                }
+            }
         }
     },
     "Parameters": {
-        "c": "4",
-        "x0":1,
-        "y0":1,
-        "sigma":0.05,
-        "a": 0.3,
-        "h":0.05
-    },
-    "BoundaryConditions":{
-        "laplacian": {
-            "flux": {
-                "Gamma":{
-                    "expr":"0"
-                }
+        "wave": {
+            "c": {
+                "expr": 1.0
             },
-            "pressure": {
-                "Gamma":{
-                    "expr":"0"
-                }
-            }
-        }
-    },
-    "InitialConditions":{
-        "laplacian":{
-            "Expression": {
-                "markers": "Omega",
-                "expr": "0.3 * exp(-((x-1)*(x-1)+(y-1)*(y-1))/(0.5)):x:y"
-            }
-        },
-        "laplacian2":{
-            "flux":{
-                "Expression": {
-                    "myic": {
-                        "markers": [
-                            "Gamma",
-                            "Omega"
-                        ],
-                        "expr": "0"
-                    }
-                }
+            "rho": {
+                "expr": "1.0"
+            },
+            "mu": {
+                "expr": "1.0"
+            },
+            "s": {
+                "expr": "0.0"
             }
         }
     }

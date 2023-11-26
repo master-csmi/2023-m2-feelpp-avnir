@@ -106,7 +106,7 @@ public:
     using element_ = typename space_t::element_type;
     using form2_type = form2_t<space_t,space_t>; // Define the type for form2
     using form1_type = form1_t<space_t>; // Define the type for form1
-    using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>; // store sol 
+    using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>;
     using exporter_ptrtype = std::shared_ptr<Exporter<mesh_t>>; // Define the type for exporter_ptrtype
 
     Laplacian() = default;
@@ -153,35 +153,31 @@ private:
     bdf_ptrtype bdf_;
     exporter_ptrtype e_;
     nl::json meas_;
-    double A, x0, y0, sigma,h;
+    // temporary solution for s, g, mu and rho
+    // See how Ginac expressions can be stored as members
+    std::string Mu, Rho, S, G;
 };
 
 // Constructor
 template <int Dim, int Order>
 Laplacian<Dim, Order>::Laplacian(nl::json const& specs) : specs_(specs)
 {
-    
+    initialize();
 }
 
 // Initialization
 template <int Dim, int Order>
 void Laplacian<Dim, Order>::initialize()
 {
-    // Load parameters from specs
-    A = get_value(specs_, "/Parameters/a", 0.3);
-    x0 = get_value(specs_, "/Parameters/x0", 1.0);
-    y0 = get_value(specs_, "/Parameters/y0", 1.0);
-    sigma = get_value(specs_, "/Parameters/sigma", 0.05);
-    h = get_value(specs_, "/Parameters/h", 0.05);
-
+    double H = specs_["/Meshes/wave/Import/h"_json_pointer].get<double>();
     // Load mesh and initialize Xh, a, l, etc.
-    mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/laplacian/Import/filename"_json_pointer].get<std::string>(),_h=h);
+    mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/wave/Import/filename"_json_pointer].get<std::string>(), _h = H);
     // define Xh on a marked region
-    if ( specs_["/Spaces/laplacian/Domain"_json_pointer].contains("marker") )
-        Xh_ = Pch<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/laplacian/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
+    if ( specs_["/Spaces/wave/Domain"_json_pointer].contains("marker") )
+        Xh_ = Pch<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/wave/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
     // define Xh via a levelset phi where phi < 0 defines the Domain and phi = 0 the boundary
-    else if (specs_["/Spaces/laplacian/Domain"_json_pointer].contains("levelset"))
-        Xh_ = Pch<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/laplacian/Domain/levelset"_json_pointer].get<std::string>())));
+    else if (specs_["/Spaces/wave/Domain"_json_pointer].contains("levelset"))
+        Xh_ = Pch<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/wave/Domain/levelset"_json_pointer].get<std::string>())));
     // define Xh on the whole mesh
     else
         Xh_ = Pch<Order>(mesh_);
@@ -189,33 +185,58 @@ void Laplacian<Dim, Order>::initialize()
     u_ = Xh_->element();
     v_ = Xh_->element();
 
-
-    // Set initial conditions
-    auto expr0_ = expr(specs_["/InitialConditions/laplacian/Expression/expr"_json_pointer].get<std::string>());
-    // Using the Parameters retrieved in specs_
-    // expr0_.setParameterValues({{"A", A}, {"x0", x0}, {"y0", y0}, {"sigma", sigma}});
-    std::cout << "expr0_ = " << expr0_ << std::endl;
-    std::cout << "With parameters : a = " << A << ", x0 = " << x0 << ", y0 = " << y0 << ", sigma = " << sigma << std::endl;
-    
-    u_.on(_range=elements(mesh_), _expr= expr0_);
-
     a_ = form2( _test = Xh_, _trial = Xh_ );
     at_ = form2( _test = Xh_, _trial = Xh_ );
     l_ = form1( _test = Xh_ );
     lt_ = form1( _test = Xh_ );
 
-    bool steady = get_value(specs_, "/TimeStepping/laplacian/steady", true);
-    int time_order = get_value(specs_, "/TimeStepping/laplacian/order", 2);
-    double initial_time = get_value(specs_, "/TimeStepping/laplacian/start", 0.0);
-    double final_time = get_value(specs_, "/TimeStepping/laplacian/end", 1.0);
-    double time_step = get_value(specs_, "/TimeStepping/laplacian/step", 0.1);
+    bool steady = get_value(specs_, "/TimeStepping/wave/steady", true);
+    int time_order = get_value(specs_, "/TimeStepping/wave/order", 2);
+    double initial_time = get_value(specs_, "/TimeStepping/wave/start", 0.0);
+    double final_time = get_value(specs_, "/TimeStepping/wave/end", 4.0);
+    double time_step = get_value(specs_, "/TimeStepping/wave/step", 0.002);
+
+    // CFL condition
+    // C = max(C(x,y))
+    double C = specs_["/Parameters/wave/c/expr"_json_pointer].get<double>();
+    time_step = std::min(time_step, H/C);
+
     bdf_ = Feel::bdf( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
 
     bdf_->start();
     if ( steady )
         bdf_->setSteady();
 
-    bdf_->initialize( u_ );
+    // Initialize u0_ and u1_ with initial conditions
+    auto u0_ = Xh_->element();
+    u0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/pressure/Expression/Omega/expr"_json_pointer].get<std::string>() ));
+    auto w0_ = Xh_->element();
+    w0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/velocity/Expression/Omega/expr"_json_pointer].get<std::string>() ));
+    // Parameters
+    Mu = specs_["/Parameters/wave/mu/expr"_json_pointer].get<std::string>();
+    Rho = specs_["/Parameters/wave/rho/expr"_json_pointer].get<std::string>();
+    S = specs_["/Parameters/wave/s/expr"_json_pointer].get<std::string>();
+    G = specs_["/BoundaryConditions/wave/flux/Gamma/expr"_json_pointer].get<std::string>();
+    auto mu = expr(Mu);
+    auto rho = expr(Rho);
+    auto s = expr(S);
+    auto g = expr(G);
+
+    // Compute u1_
+    a_.zero();
+    l_.zero();
+    a_ += integrate( _range = elements(mesh_), _expr = 1/mu * idt(u_) * id(v_) );
+    l_ += integrate( _range = elements(mesh_),
+            _expr = 1/mu * idv(u0_) * id(v_)
+            + expr(bdf_->timeStep()) * 1/mu * idv(w0_) * id(v_)
+            + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * s * id(v_) / 2
+            + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * -1/mu * inner(gradv(u0_),gradv(v_)) /2);
+    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * 1/rho * g * id(v_) / 2);
+    a_.solve( _rhs = l_, _solution = u_ );
+
+    // Initialize bdf
+    bdf_->initialize( u0_ );
+    bdf_->shiftRight( u_ );
 
     if ( steady )
         std::cout << "\n***** Compute Steady state *****" << std::endl;
@@ -244,9 +265,15 @@ void Laplacian<Dim, Order>::processMaterials()
     for ( auto [key, material] : specs_["/Models/laplacian/Materials"_json_pointer].items() )
     {
         LOG( INFO ) << fmt::format( "Material {} found", material );
+        std::string mat = fmt::format( "/Materials/{}/k", material.get<std::string>() );
+        auto k = specs_[nl::json::json_pointer( mat )].get<std::string>();
+        std::string matRho = fmt::format( "/Materials/{}/rho", material.get<std::string>() );
+        auto Rho = specs_[nl::json::json_pointer( matRho )].get<std::string>();
+        std::string matCp = fmt::format( "/Materials/{}/Cp", material.get<std::string>() );
+        auto Cp = specs_[nl::json::json_pointer( matCp )].get<std::string>();
 
         a_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
-                _expr =  idt( u_ ) * id( v_ ) / pow(bdf_->timeStep(),2));
+                _expr = bdf_->polyDerivCoefficient( 0 ) * expr( Rho ) * expr( Cp ) * idt( u_ ) * id( v_ ) + expr( k ) * gradt( u_ ) * trans( grad( v_ ) ) );
     }
 }
 
@@ -255,18 +282,15 @@ template <int Dim, int Order>
 void Laplacian<Dim, Order>::processBoundaryConditions()
 {
     // BC Neumann
-    if ( specs_["/BoundaryConditions/laplacian"_json_pointer].contains( "flux" ) ) // the pressure can be accessed in the same way
+    if ( specs_["/BoundaryConditions/laplacian"_json_pointer].contains( "flux" ) )
     {
         for ( auto& [bc, value] : specs_["/BoundaryConditions/laplacian/flux"_json_pointer].items() )
         {
             LOG( INFO ) << fmt::format( "flux {}: {}", bc, value.dump() );
             auto flux = value["expr"].get<std::string>();
-            std::cout << " *** Informations during boundary condition processing ***" << std::endl;
-            std::cout << "flux = " << flux << std::endl;
-            std::cout << "bc = " << bc << std::endl;
 
             l_ += integrate( _range = markedfaces( support( Xh_ ), bc ),
-                    _expr = expr( flux ) * id( v_ ) ); // flux 0 + PML condition
+                    _expr = expr( flux ) * id( v_ ) );
         }
     }
 
@@ -291,44 +315,45 @@ void Laplacian<Dim, Order>::processBoundaryConditions()
 template <int Dim, int Order>
 void Laplacian<Dim, Order>::run()
 {
-    std::cout << "***** Initialize Laplacian *****" << std::endl;
+    std::cout << "\n***** Initialize *****" << std::endl;
     initialize();
-    std::cout << "***** Process Materials *****" << std::endl;
+    std::cout << "\n***** Process materials *****" << std::endl;
     processMaterials();
-    std::cout << "***** Process Boundary Conditions *****" << std::endl;
+    std::cout << "\n***** Process boundary conditions *****" << std::endl;
     processBoundaryConditions();
-    std::cout << "***** Time Loop *****" << std::endl;
+    std::cout << "\n***** Time loop *****" << std::endl;
     timeLoop();
-    std::cout << "***** Export Results *****" << std::endl;
+    std::cout << "\n***** Export results *****" << std::endl;
     exportResults();
-    std::cout << "***** Write Results to File *****" << std::endl;
-    writeResultsToFile("results.json");
 }
 
 // Time loop
 template <int Dim, int Order>
 void Laplacian<Dim, Order>::timeLoop()
 {
+    // paramètres
+    auto mu = expr(Mu);
+    auto rho = expr(Rho);
+    auto s = expr(S);
+    auto g = expr(G);
     // time loop
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
-        at_ = a_;
-        lt_ = l_;
+        at_ += integrate( _range = elements(mesh_), _expr = (1/mu) * idt(u_) * id(v_) );
+        auto un = bdf_->unknown(0);
+        auto un_1 = bdf_->unknown(1);
+        lt_ += integrate( _range = elements(mesh_),
+                          _expr = (1/mu) * (2 * idv(un) - idv(un_1) ) * id(v_)
+                          + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * ((-1)/mu) * inner(gradv(un), grad(v_))
+                          + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * s * id(v_));
+        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * (1/rho) * g * id(v_));
 
-        for ( auto [key, material] : specs_["/Models/laplacian/Materials"_json_pointer].items() )
-        {
-            std::string matC = fmt::format( "/Materials/{}/c", material.get<std::string>() );
-
-            auto c = specs_[nl::json::json_pointer( matC )].get<std::string>();
-
-            // lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
-                    // _expr =  (2*idv(u_) - idv(un_)) * id(v_) + pow(bdf_->timeStep(),2) *(gradv(un_)*trans(grad(v_)) + expr(c) * idv( un_ ) * id( v_ ) ));
-            lt_ += integrate( _range = markedelements( support( Xh_ ), material.get<std::string>() ),
-                    _expr =  (2*idv(u_) - idv(bdf_->unknown(0))) * id(v_) + pow(bdf_->timeStep(),2) *(gradv(u_)*trans(grad(v_)) + expr(c) * id( v_ ) ));
-        }
         at_.solve( _rhs = lt_, _solution = u_ );
 
         this->exportResults();
+
+        at_.zero();
+        lt_.zero();
     }
 }
 
