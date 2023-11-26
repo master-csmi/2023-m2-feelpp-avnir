@@ -389,6 +389,7 @@ Using $\tilde U(\Delta t) \approx \tilde U(0) + \Delta t \tilde U'(0) + \frac{\D
 [%dynamic,python]
 ----
 from feelpp_sonorhc.fd import wave_2d
+import numpy as np
 
 L, nx = 2., 100
 H, ny = 2., 100
@@ -427,7 +428,7 @@ We use the library pyvista to visualize the solution.
 [%dynamic%raw%open,python]
 ----
 import pyvista as pv
-from IPython.display import Image
+from IPython.display import Image, display
 
 multi_block = pv.MultiBlock()
 x = np.linspace(0, L, nx + 1)
@@ -458,5 +459,5 @@ for i in range(len(multi_block_3D)):
     plotter.write_frame()
 plotter.close()
 
-Image(filename="wave_animation.gif")
+display(Image(filename="wave_animation.gif"))
 ----
