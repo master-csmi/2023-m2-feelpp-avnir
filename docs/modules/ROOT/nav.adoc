@@ -4,7 +4,8 @@
 * xref:examples/index.adoc[Use Cases]
 ** xref:examples/fin.adoc[Thermal Fin]
 ** xref:examples/wave-fd.adoc[Acoustic Wave FDTD]
-** xref:examples/wave-cfpdes.adoc[Acoustic Wave CFPDES]
+** xref:examples/wave-cfpde.adoc[Acoustic Wave CFPDES]
+** xref:examples/wave-fem.adoc[Acoustic Wave FEM]
 * Setting up the development Environment
 ** xref:env/cmake.adoc[]
 ** xref:env/antora.adoc[]
