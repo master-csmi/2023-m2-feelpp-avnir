@@ -809,15 +809,15 @@ print(U.shape)</code></pre>
 <div class="literalblock dynamic-py-result">
 <div class="content">
 <pre>---------------------------------------------------------------------------
-ModuleNotFoundError                       Traceback (most recent call last)
+NameError                                 Traceback (most recent call last)
 <ipython-input-1-de2bb62dce44> in <module>
-----> 1 from feelpp_sonorhc.fd import wave_2d
-      2
-      3 L, nx = 2., 100
-      4 H, ny = 2., 100
-      5 T = 4.
+      7
+      8 # source term
+----> 9 def s(x: np.ndarray, y: np.ndarray, t: float) -> np.ndarray:
+     10     return np.zeros_like(x)
+     11
 
-ModuleNotFoundError: No module named 'feelpp_sonorhc'</pre>
+NameError: name 'np' is not defined</pre>
 </div>
 </div>
 </div>
