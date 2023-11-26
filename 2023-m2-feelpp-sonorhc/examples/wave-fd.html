@@ -772,6 +772,7 @@ central difference, we obtain a relation between
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">from feelpp_sonorhc.fd import wave_2d
+import numpy as np
 
 L, nx = 2., 100
 H, ny = 2., 100
@@ -808,16 +809,7 @@ print(U.shape)</code></pre>
 <div class="content">
 <div class="literalblock dynamic-py-result">
 <div class="content">
-<pre>---------------------------------------------------------------------------
-NameError                                 Traceback (most recent call last)
-<ipython-input-1-de2bb62dce44> in <module>
-      7
-      8 # source term
-----> 9 def s(x: np.ndarray, y: np.ndarray, t: float) -> np.ndarray:
-     10     return np.zeros_like(x)
-     11
-
-NameError: name 'np' is not defined</pre>
+<pre>(10201, 1132)</pre>
 </div>
 </div>
 </div>
@@ -833,7 +825,7 @@ NameError: name 'np' is not defined</pre>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">import pyvista as pv
-from IPython.display import Image
+from IPython.display import Image, display
 
 multi_block = pv.MultiBlock()
 x = np.linspace(0, L, nx + 1)
@@ -864,7 +856,7 @@ for i in range(len(multi_block_3D)):
     plotter.write_frame()
 plotter.close()
 
-Image(filename="wave_animation.gif")</code></pre>
+display(Image(filename="wave_animation.gif"))</code></pre>
 </div>
 </div>
 <details class="dynamic-py-result dynamic-py-result-plotly" open>
