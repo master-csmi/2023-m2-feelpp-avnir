@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Wave equation using finite element method :: 2023 M2 Feelpp Sonorhc</title>
+    <link rel="canonical" href="https://feelpp.github.io/2023-m2-feelpp-sonorhc/2023-m2-feelpp-sonorhc/examples/wave-fem.html">
+    <meta name="description" content="We simulate the wave equation using the finite element method">
+    <meta name="generator" content="Antora 3.1.4">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" href="../../_/img/favicon.ico" type="image/x-icon">
+<script>!function(l,p){if(l.protocol!==p&&l.host=="docs.antora.org"){l.protocol=p}else if(/\.gitlab\.io$/.test(l.host)){l.replace(p+"//docs.antora.org"+l.pathname.substr(l.pathname.indexOf("/",1))+l.search+l.hash)}}(location,"https:")</script>
+
+<script src="../../_/js/vendor/tabs-block-extension.js"></script>
+<script src="../../_/js/vendor/tabs-block-behavior.js"></script>
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+
+  TeX: {
+      Macros: {
+      bold: ["{\\bf #1}",1],
+      calTh: "{\\mathcal{T}_h}",
+      card: ["{\\operatorname{card}(#1)}",1],
+      card: ["{\\operatorname{card}(#1)}",1],
+      Ck: ["{\\mathcal{C}^{#1}}",1],
+      deformt: ["{\\mathbf{\\varepsilon(#1)}}",1],
+      diam: "{\\operatorname{diam}}",
+      dim: ["{\\operatorname{dim}(#1)}",1],
+      disp: ["{\\mathbf{#1}}",1],
+      domain: "{\\Omega}",
+      ds: "",
+      essinf: "{\\operatorname{ess}\\, \\operatorname{inf}}",
+      F:"{\\mathcal{F}}",
+      geo: "{\\mathrm{geo}}",
+      Ich: ["{\\mathcal{I}^{#1}_{c,h}#2}",2],
+      Id: "{\\mathcal{I}}",
+      Ilag: ["{\\mathcal{I}^{\\mathrm{lag}}_{#1}}",1],
+      jump: ["{[\\![ #1 ]\\!]}",1],
+      n:"{\\mathbf{n}}",
+      Ne: "{N_{\\mathrm{e}}}",
+      Next: "{\\mathrm{n}}",
+      nf: "{n_f}",
+      ngeo: "{n_{\\mathrm{geo}}}",
+      Nma: "{N_{\\mathrm{ma}}}",
+      NN: "{\\mathbb N}",
+      Nno: "{N_{\\mathrm{no}}}",
+      Nso: "{N_{\\mathrm{so}}}",
+      opdim: "{\\operatorname{dim}}",
+      p: "{\\mathrm{p}}",
+      P:"{\\mathcal{P}}",
+      Pch: ["{P^{#1}_{c,h}}",1],
+      Pcho: ["{P^{#1}_{c,h,0}}",1],
+      Pk: ["{\\mathcal{P}^{#1}}",1],
+      poly: ["{\\mathbb{#1}",1],
+      poly: ["{\\mathbb{#1}}",1],
+      prect: ["{\\left\\(#1\\right\\)}",1],
+      q:"{\\mathbf{q}}",
+      Qch: ["{Q^{#1}_{c,h}}",1],
+      Qk: ["{\\mathcal{Q}^{#1}}",1],
+      R: ["{\\mathbb{R}^{#1}}",1],
+      RR: "{\\mathbb R}",
+      set: ["{\\left\\{#1\\right\\}}",1],
+      stresst: ["{\\mathbf{\\sigma(#1)}}",1],
+      T:"{\\mathcal{T}}",
+      tr: "{\\operatorname{tr}}",
+      v:"{\\mathbf{v}}",
+      vertiii: ["\\left\\vert\\kern-0.25ex\\left\\vert\\kern-0.25ex\\left\\vert #1 \\right\\vert\\kern-0.25ex\\right\\vert\\kern-0.25ex\\right\\vert",1]
+  },
+  extensions: ["mhchem.js"] 
+  }
+});
+</script>
+<!--<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-MML-AM_CHTML"></script>-->
+<!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML' async></script> -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML'></script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.6.0/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>-->
+
+<!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css" integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.js" integrity="sha384-jmxIlussZWB7qCuB+PgKG1uLjjxbVVIayPJwi6cG6Zb4YKq0JIw+OMnkkEC7kYCq" crossorigin="anonymous"></script>-->
+<script>var uiRootPath = '../../_'</script>
+
+  </head>
+  <body class="article">
+<header class="header">
+    <nav class="navbar navbar-expand-sm bg-dark navbar-dark navbar-template-project" style="border-top: 4px solid #9E9E9E">
+        <div class="navbar-brand">
+            <div class="navbar-item feelpp-logo">
+                <a href="https://feelpp.github.io/2023-m2-feelpp-sonorhc">2023 M2 Feelpp Sonorhc</a>
+            </div>
+            <button class="navbar-burger" data-target="topbar-nav">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+
+        <div id="topbar-nav" class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <a href="https://docs.feelpp.org/">Documentation Reference</a>
+                </div>
+                <div class="navbar-item has-dropdown is-hoverable download-item">
+                    <div class="navbar-item"><a href="https://docs.feelpp.org/user/latest/install/index.html" class="download-btn">Get Feel++</a></div>
+                </div>
+                <div class="navbar-item">
+                    <a class="navbar-brand"  href="https://www.cemosis.fr">
+                        <img class="cemosis-logo"  src="../../_/img/cemosis-logo.svg" alt="Cemosis logo"/>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+<div class="body">
+<a href="#" class="menu-expand-toggle"></a>
+<div class="nav-container" data-component="2023-m2-feelpp-sonorhc" data-version="">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">Template Project</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Introduction</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../quickstart.html">Quickstart</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../overview.html">Overview</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use Cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="fin.html">Thermal Fin</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="wave-fd.html">Acoustic Wave FDTD</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="wave-cfpde.html">Acoustic Wave CFPDES</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="wave-fem.html">Acoustic Wave FEM</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Setting up the development Environment</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/cmake.html">CMake Environment</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/antora.html">Antora Environment</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/vscode.html">VS Code Integration</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/githubactions.html">GitHub Actions</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/rename.html">Renaming the Project</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/jupyter.html">Jupyter Notebook</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Template Project</span>
+    <span class="version"></span>
+  </div>
+  <ul class="components">
+      <li class="component is-current">
+        <a class="title" href="../index.html">Template Project</a>
+      </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+  <button class="nav-toggle"></button>
+    <a href="../index.html" class="home-link"></a>
+  <nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Template Project</a></li>
+    <li><a href="index.html">Use Cases</a></li>
+    <li><a href="wave-fem.html">Acoustic Wave FEM</a></li>
+  </ul>
+</nav>
+
+  
+    <div class="edit-this-page"><a href="https://github.com/master-csmi/2023-m2-feelpp-sonorhc/edit/master/docs/modules/ROOT/pages/examples/wave-fem.adoc">Edit this Page</a></div>
+  
+  <div class="page-downloads">
+  <span class="label">Download as</span>
+  <ul class="download-options">
+    <li>
+      <a onclick="print(this)" href="#" data-toggle="tooltip" data-placement="left" title="Print to PDF"
+         class="pdf-download">
+        <img class="pdf-file-icon icon" src="../../_/img/pdf.svg"/> .pdf
+      </a>
+    </li>
+  </ul>
+</div>
+</div>
+
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Wave equation using finite element method</h1>
+<div class="sect1">
+<h2 id="_problem_statement"><a class="anchor" href="#_problem_statement"></a>1. Problem Statement</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>We aim to verify the correctness of the finite element method by solving the acoustic wave equation in a two-dimensional domain. The general form of the wave equation is given by:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{cases}
+\begin{align}
+\frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) - \nabla ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) &amp;= s(x,y,t) \quad (x,y) \in \Omega, \quad t \in \times (0,T) \\
+\partial_n u(x,y,t) &amp;= g(x,y,t) \quad (x,y) \in \partial \Omega, \quad t \in \times (0,T) \\
+u(x,y,0) &amp;= u_0(x,y) \quad (x,y) \in \Omega \\
+\partial_t u(x,y,0) &amp;= w_1(x,y) \quad (x,y) \in \Omega
+\end{align}
+\end{cases}\]
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">The equation&#8217;s parametes are</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>\(\mu(x,y) = \rho(x,y)*c(x,y)^2\)</p>
+</li>
+<li>
+<p>\(\rho\) is the density</p>
+</li>
+<li>
+<p>\(c\) is the speed</p>
+</li>
+<li>
+<p>\(\partial_n u(x,y,t)\) where \(n\) is the outward normal vector to the boundary of the domain.</p>
+</li>
+<li>
+<p>\(u\) is the function to be determined (that describes the wave)</p>
+</li>
+<li>
+<p>\(s\) is the source term (assumed given function)</p>
+</li>
+<li>
+<p>\(u_0\) is the initial condition for $u$ (assumed given function)</p>
+</li>
+<li>
+<p>\(w_0\) is the initial condition for \(\partial_t u\) (assumed given function)</p>
+</li>
+<li>
+<p>\(g\) is the boundary condition for \(\partial_n u\) (assumed given function)</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="sect2">
+<h3 id="_weak_formulation"><a class="anchor" href="#_weak_formulation"></a>1.1. Weak Formulation</h3>
+<div class="paragraph">
+<p>In order to adapt the finite element method, we need to transform the problem into a weak formulation. We multiply the equation by a test function \(v \in H^1(\Omega)\) and integrate over the domain:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+\int_{\Omega} \frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) v(x,y) \, dx dy - \int_{\Omega} \nabla ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) v(x,y) \, dx dy &amp;= \int_{\Omega} s(x,y,t) v(x,y) \, dx dy \\
+\int_{\Omega} \frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) v(x,y) \, dx dy + \int_{\Omega} \nabla v(x,y) ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) \, dx dy - \int_{\partial \Omega} v(x,y) ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) \cdot n \, ds &amp;= \int_{\Omega} s(x,y,t) v(x,y) \, dx dy \\
+\int_{\Omega} \frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) v(x,y) \, dx dy + \int_{\Omega} \nabla v(x,y) ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) \, dx dy &amp;= \int_{\Omega} s(x,y,t) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,t) v(x,y) \, ds \\
+a(u,v) &amp;= l(v)
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Where \(a(u,v)\) is the bilinear form and \(l(v)\) is the linear form.</p>
+</div>
+<div class="paragraph">
+<p>This can be written in a more compact form as follows:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[AU = L\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(A\) is the stiffness matrix, \(U\) is the vector of unknowns and \(L\) is the load vector.
+\(A\) and \(F\) are defined as follows:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+A_{i,j} &amp;= a(\phi_i,\phi_j) \\
+F_{i} &amp;= l(\phi_i)
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(\phi_i\) are the basis functions of the chosen function space.</p>
+</div>
+<div class="paragraph">
+<p>For the sake of readability, we define the following:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+(u,v)_{\mu} &amp;= \int_{\Omega} \frac{1}{\mu(x,y)} u(x,y,t) v(x,y) \, dx dy \\
+(u,v)_{\rho} &amp;= \int_{\Omega} \frac{1}{\rho(x,y)} u(x,y,t) v(x,y) \, dx dy
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>which allows us to rewrite the weak formulation as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\partial_t^2 (u,v)_{\mu} + (\nabla u, \nabla v)_{\rho} = \int_{\Omega} s(x,y,t) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,t) v(x,y) \, ds\]
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_time_discretization"><a class="anchor" href="#_time_discretization"></a>1.2. Time Discretization</h3>
+<div class="paragraph">
+<p>In order to be able to solve for \(U\) during the timeloop, we will have to approximate the second time derivative with a three-point central difference scheme:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\partial_t^2 u(x,y,t) \approx \frac{u(x,y,t+\Delta t) - 2 u(x,y,t) + u(x,y,t-\Delta t)}{\Delta t^2}\]
+</div>
+</div>
+<div class="paragraph">
+<p>And the expression using the unknowns at time \(t^n\), \(t^{n+1}\) and \(t^{n-1}\) becomes:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\partial_t^2 u(x,y,t) \approx \frac{U^{n+1} - 2 U^n + U^{n-1}}{\Delta t^2}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(U^n\) is the vector of unknowns at time \(t^n\), \(U^{n+1}\) is the vector of unknowns at time \(t^{n+1}\) and \(U^{n-1}\) is the vector of unknowns at time \(t^{n-1}\).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_initial_conditions"><a class="anchor" href="#_initial_conditions"></a>1.3. Initial Conditions</h3>
+<div class="paragraph">
+<p>In order to solve the problem, we need to specify the initial conditions. Since \(u_0\) is given by the problem statement, we only need to compute \(u_1\). We can use the following second order series expansion:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+u(x,y,0) &amp;= u_0(x,y) \\
+u_1(x,y) &amp;= u(x,y,\Delta t) \approx u_0(x,y) + \Delta t \partial_t u_0(x,y) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x,y) \\
+&amp;= u_0(x,y) + \Delta t w_0(x,y) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x,y)
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>The only unknown in the above equation is \(\partial_t^2 u_0(x,y)\). But we know that it has to satisfy the first equality in the problem statement. Therefore, we can compute it as follows:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+(\partial_t^2 u_0,v)_\mu + (\nabla u_0, \nabla v)_\rho &amp;= \int_{\Omega} s(x,y,0) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,0) v(x,y) \, ds \\
+(u_1,v)_\mu &amp;= (u_0,v)_\mu + \Delta t (w_0,v)_\mu + \frac{\Delta t^2}{2}(\partial_t^2 u_0,v)_\mu \\
+(u_1,v)_\mu &amp;= (u_0,v)_\mu + \Delta t (w_0,v)_\mu + \frac{\Delta t^2}{2} (\int_{\Omega} s(x,y,0) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,0) v(x,y) \, ds - (\nabla u_0, \nabla v)_\rho ) \\
+a(u_1,v) &amp;= l(v)
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>And this can be computed using feelpp.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_cfl_condition"><a class="anchor" href="#_cfl_condition"></a>1.4. CFL Condition</h3>
+<div class="paragraph">
+<p>In order to ensure stability of the scheme, we need to ensure that the CFL condition is satisfied:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+C_{CFL} \frac{\Delta t}{h} &amp;\leq 1 \\
+\Delta t &amp;\leq \frac{h}{C_{CFL}}
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(C_{CFL}\) is the max of \(c\), the speed as stated before.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_implementation"><a class="anchor" href="#_implementation"></a>2. Implementation</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_test_case_square_domain"><a class="anchor" href="#_test_case_square_domain"></a>2.1. Test Case : Square Domain</h3>
+<div class="paragraph">
+<p>For testing purposes, we set the following parameters:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+\Omega &amp;= [0,2] \times [0,2] \\
+\rho(x,y) &amp;= 1 \\
+c(x,y) &amp;= 1 \\
+s(x,y,t) &amp;= 0 \\
+g(x,y,t) &amp;= 0 \\
+u_0(x,y) &amp;= 0.3 \exp(-((x-1.0)^2+(y-1.0)^2)/(2*0.05^2)) \\
+w_0(x,y) &amp;= 0
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>These are defined in the json file, as are the time-stepping parameters:
+.JSON Congiguration File</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+    "Name": "Square 2D",
+    "ShortName": "square2d",
+    "Models": {
+        "wave": {
+            "name": "Omega"
+        }
+    },
+    "Meshes": {
+        "wave": {
+            "Import": {
+                "filename": "$cfgdir/square.geo",
+                "partition": 0,
+                "h": 0.01
+            }
+        }
+    },
+    "Spaces": {
+        "wave": {
+            "Domain": {
+
+
+            }
+        }
+    },
+    "TimeStepping":
+    {
+        "wave" :{
+            "steady": false,
+            "order" : 2,
+            "start": 0.0,
+            "end": 4,
+            "step": 0.0025
+        }
+    },
+    "InitialConditions": {
+        "wave": {
+            "pressure": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.3*exp(-((x-1.0)^2+(y-1.0)^2)/(2*0.05^2)):x:y"
+                    }
+                }
+            },
+            "velocity": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.0"
+                    }
+                }
+            }
+        }
+    },
+    "BoundaryConditions": {
+        "wave": {
+            "flux": {
+                "Gamma": {
+                    "expr": "0.0"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "wave": {
+            "c": {
+                "expr": 1.0
+            },
+            "rho": {
+                "expr": "1.0"
+            },
+            "mu": {
+                "expr": "1.0"
+            },
+            "s": {
+                "expr": "0.0"
+            }
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>All four functions \(S\), \(u_0\), \(w_0\) and \(g\) are defined as constant expressions, but can be accessed as functions of the domain as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">auto f0_ = expr( specs_["/InitialConditions/wave/pressure/Expression/Omega/expr"_json_pointer].get&lt;std::string&gt;() )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we can start initializing the problem. We start by defining the domain and the function spaces, and then u_ and v_:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/wave/Import/filename"_json_pointer].get&lt;std::string&gt;(), _h = H);
+Xh_ = Pch&lt;Order&gt;(mesh_);
+u_ = Xh_-&gt;element();
+v_ = Xh_-&gt;element();
+
+a_ = form2( _test = Xh_, _trial = Xh_ );
+at_ = form2( _test = Xh_, _trial = Xh_ );
+l_ = form1( _test = Xh_ );
+lt_ = form1( _test = Xh_ );</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We verify the CFL condition:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">double C = specs_["/Parameters/wave/c/expr"_json_pointer].get&lt;double&gt;();
+time_step = std::min(time_step, H/C);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We then proceed with the initialization of u0_ and w0_:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">auto u0_ = Xh_-&gt;element();
+u0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/pressure/Expression/Omega/expr"_json_pointer].get&lt;std::string&gt;() ));
+auto w0_ = Xh_-&gt;element();
+w0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/velocity/Expression/Omega/expr"_json_pointer].get&lt;std::string&gt;() ));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, we load all the functions from the json file in order to define and initialize the bilinear and linear forms to solve for the unknown \(u_1\):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">Mu = specs_["/Parameters/wave/mu/expr"_json_pointer].get&lt;std::string&gt;();
+Rho = specs_["/Parameters/wave/rho/expr"_json_pointer].get&lt;std::string&gt;();
+S = specs_["/Parameters/wave/s/expr"_json_pointer].get&lt;std::string&gt;();
+G = specs_["/BoundaryConditions/wave/flux/Gamma/expr"_json_pointer].get&lt;std::string&gt;();
+auto mu = expr(Mu);
+auto rho = expr(Rho);
+auto s = expr(S);
+auto g = expr(G);
+
+a_.zero();
+l_.zero();
+a_ += integrate( _range = elements(mesh_), _expr = 1/mu * idt(u_) * id(v_) );
+l_ += integrate( _range = elements(mesh_),
+        _expr = 1/mu * idv(u0_) * id(v_)
+        + expr(bdf_-&gt;timeStep()) * 1/mu * idv(w0_) * id(v_)
+        + expr(bdf_-&gt;timeStep()) * expr(bdf_-&gt;timeStep()) * s * id(v_) / 2
+        + expr(bdf_-&gt;timeStep()) * expr(bdf_-&gt;timeStep()) * -1/mu * inner(gradv(u0_),gradv(v_)) /2);
+l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_-&gt;timeStep()) * expr(bdf_-&gt;timeStep()) * 1/rho * g * id(v_) / 2);
+a_.solve( _rhs = l_, _solution = u_ );
+
+// Initialize bdf
+bdf_-&gt;initialize( u0_ );
+bdf_-&gt;shiftRight( u_ );</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The last two lines initialize our BDF object, used to hold the two previous solutions, and then shift the current solution to the right, so that we can start the time loop, which solves the problem for all the time steps:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">template &lt;int Dim, int Order&gt;
+void Laplacian&lt;Dim, Order&gt;::timeLoop()
+{
+    // paramètres
+    auto mu = expr(Mu);
+    auto rho = expr(Rho);
+    auto s = expr(S);
+    auto g = expr(G);
+    // time loop
+    for ( bdf_-&gt;start(); bdf_-&gt;isFinished()==false; bdf_-&gt;next(u_) )
+    {
+        at_ += integrate( _range = elements(mesh_), _expr = (1/mu) * idt(u_) * id(v_) );
+        auto un = bdf_-&gt;unknown(0);
+        auto un_1 = bdf_-&gt;unknown(1);
+        lt_ += integrate( _range = elements(mesh_),
+                          _expr = (1/mu) * (2 * idv(un) - idv(un_1) ) * id(v_)
+                          + expr(bdf_-&gt;timeStep()) * expr(bdf_-&gt;timeStep()) * ((-1)/mu) * inner(gradv(un), grad(v_))
+                          + expr(bdf_-&gt;timeStep()) * expr(bdf_-&gt;timeStep()) * s * id(v_));
+        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_-&gt;timeStep()) * expr(bdf_-&gt;timeStep()) * (1/rho) * g * id(v_));
+
+        at_.solve( _rhs = lt_, _solution = u_ );
+
+        this-&gt;exportResults();
+
+        at_.zero();
+        lt_.zero();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_execute_the_code"><a class="anchor" href="#_execute_the_code"></a>2.1.1. Execute the code</h4>
+<div class="paragraph">
+<p>In order to execute the code, one has to build the project using the default setting. Then, when located at the root of the repository, one can execute the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd build/default/src &amp;&amp;
+./feelpp_2mfs_laplacian --config-file ../../../src/cases/laplacian/onde/onde.cfg</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The results are automatically exported to the main feelppdb database, a folder which location is printed in the terminal at the end of the execution. The results can be visualized by importing them into paraview.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/square-fem.png" alt="square fem" width="600px">
+</div>
+<div class="title">Figure 1. Results of FEM on our testcase</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer" style="border-top: 2px solid #e9e9e9; background-color: #fafafa; padding-bottom: 2em; padding-top: 2em;">
+    <div class="container" style="display: flex; flex-direction: column; align-items: center; gap: 0.5em;">
+        <div>
+            <a href="https://www.cemosis.fr">
+                <img src="../../_/img/cemosis-logo.svg" alt="Cemosis logo" height="50">
+            </a>
+        </div>
+        <span style="font-size: 0.8rem; color: #9e9e9e">© 2023 <a href="https://www.cemosis.fr" style="text-decoration: underline;">Cemosis</a>, Université de Strasbourg</span>
+    </div>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+
+
+<script async src="../../_/js/vendor/fontawesome-icon-defs.js"></script>
+<script async src="../../_/js/vendor/fontawesome.js"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+
+
+<script type="text/javascript">
+function toggleFullScreen() {
+   var doc = window.document;
+   var docEl = doc.documentElement;
+
+   var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+   var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+   if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+       requestFullScreen.call(docEl);
+   }
+   else {
+       cancelFullScreen.call(doc);
+   }
+}
+</script>
+  </body>
+</html>
