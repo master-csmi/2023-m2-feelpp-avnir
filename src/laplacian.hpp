@@ -315,15 +315,20 @@ void Laplacian<Dim, Order>::processBoundaryConditions()
 template <int Dim, int Order>
 void Laplacian<Dim, Order>::run()
 {
-    std::cout << "\n***** Initialize *****" << std::endl;
+    if (Environment::isMasterRank())
+        std::cout << "\n***** Initialize *****" << std::endl;
     initialize();
-    std::cout << "\n***** Process materials *****" << std::endl;
+    if (Environment::isMasterRank())
+        std::cout << "\n***** Process materials *****" << std::endl;
     processMaterials();
-    std::cout << "\n***** Process boundary conditions *****" << std::endl;
+    if (Environment::isMasterRank())
+        std::cout << "\n***** Process boundary conditions *****" << std::endl;
     processBoundaryConditions();
-    std::cout << "\n***** Time loop *****" << std::endl;
+    if (Environment::isMasterRank())
+        std::cout << "\n***** Time loop *****" << std::endl;
     timeLoop();
-    std::cout << "\n***** Export results *****" << std::endl;
+    if (Environment::isMasterRank())
+        std::cout << "\n***** Export results *****" << std::endl;
     exportResults();
 }
 
@@ -337,8 +342,12 @@ void Laplacian<Dim, Order>::timeLoop()
     auto s = expr(S);
     auto g = expr(G);
     // time loop
+    int it = 0;
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
+        tic();
+        if (Environment::isMasterRank())
+            std::cout << "time " << bdf_->time() << std::endl;
         at_ += integrate( _range = elements(mesh_), _expr = (1/mu) * idt(u_) * id(v_) );
         auto un = bdf_->unknown(0);
         auto un_1 = bdf_->unknown(1);
@@ -350,10 +359,13 @@ void Laplacian<Dim, Order>::timeLoop()
 
         at_.solve( _rhs = lt_, _solution = u_ );
 
-        this->exportResults();
+        if (it % 10 == 0)
+            this->exportResults();
 
         at_.zero();
         lt_.zero();
+        toc("time loop");
+        it++;
     }
 }
 
@@ -365,16 +377,21 @@ void Laplacian<Dim, Order>::exportResults()
     e_->step(bdf_->time())->add("u", u_);
     e_->save();
 
-
+    // tic();
     auto totalQuantity = integrate(_range=elements(mesh_), _expr=idv(u_)).evaluate()(0,0);
     auto totalFlux = integrate(_range=boundaryfaces(mesh_), _expr=gradv(u_)*N()).evaluate()(0,0);
     double meas=measure(_range=elements(mesh_), _expr=cst(1.0));
+    // toc("export");
+    // tic();
     meas_["time"].push_back(bdf_->time());
     meas_["totalQuantity"].push_back(totalQuantity);
     meas_["totalFlux"].push_back(totalFlux);
     meas_["mean"].push_back(totalQuantity/meas);
     meas_["min"].push_back(u_.min());
     meas_["max"].push_back(u_.max());
+    // toc("measures");
+    LOG(INFO) << fmt::format("Markers {}", mesh_->markerNames());
+    // tic();
     for( auto [key,values] : mesh_->markerNames())
     {
         if ( values[1] == Dim )
@@ -393,9 +410,8 @@ void Laplacian<Dim, Order>::exportResults()
             auto flux = integrate(_range=markedfaces(mesh_,key), _expr=gradv(u_)*N()).evaluate()(0,0);
             meas_[fmt::format("flux_{}",key)].push_back(flux);
         }
-        
     }
-    
+    // toc("measures from markers");
 }
 template <int Dim, int Order>
 void Laplacian<Dim, Order>::writeResultsToFile(const std::string& filename) const
