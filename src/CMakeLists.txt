@@ -24,10 +24,10 @@
 feelpp_add_application(laplacian SRCS laplacian.cpp TESTS INSTALL )
 feelpp_add_testcase(cases PREFIX fp CATEGORY feelpp)
 
-if(FEELPP_TOOLBOXES_FOUND)
-    feelpp_add_application(toolbox SRCS toolbox.cpp LINK_LIBRARIES Feelpp::feelpp_toolbox_electric_lib TESTS)
-    feelpp_add_testcase(cases)
-endif()
+# if(FEELPP_TOOLBOXES_FOUND)
+#     feelpp_add_application(toolbox SRCS toolbox.cpp LINK_LIBRARIES Feelpp::feelpp_toolbox_electric_lib TESTS)
+#     feelpp_add_testcase(cases)
+# endif()
 
 if ( SKBUILD_PROJECT_NAME )
     python_add_library(_laplacian MODULE _laplacian.cpp WITH_SOABI)
