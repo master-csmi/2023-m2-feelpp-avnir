@@ -4,12 +4,6 @@
     "Models": {
         "wave": {
             "name": "Omega"
-        },
-        "elastic": {
-            "Materials": {
-
-
-            }
         }
     },
     "Meshes": {
@@ -55,15 +49,6 @@
                     }
                 }
             }
-        },
-        "elastic": {
-            "externalF": {
-                "Expression": {
-                    "Omega": {
-                        "expr": "{0.0,-9.81}"
-                    }
-                }
-            }
         }
     },
     "BoundaryConditions": {
@@ -71,13 +56,6 @@
             "flux": {
                 "Gamma": {
                     "expr": "0.0"
-                }
-            }
-        },
-        "elastic": {
-            "Gamma" : {
-                "g" :  {
-                    "expr" : "{0.0,0.0}"
                 }
             }
         }
@@ -95,14 +73,6 @@
             },
             "s": {
                 "expr": "0.0"
-            }
-        },
-        "elastic": {
-            "E": {
-                "expr": 1.0
-            },
-            "nu": {
-                "expr": 0.3
             }
         }
     }
