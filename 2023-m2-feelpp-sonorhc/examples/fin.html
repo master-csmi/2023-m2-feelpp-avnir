@@ -367,14 +367,14 @@ print(data)</code></pre>
 <div class="literalblock dynamic-py-result">
 <div class="content">
 <pre>---------------------------------------------------------------------------
-AttributeError                            Traceback (most recent call last)
+NameError                                 Traceback (most recent call last)
 <ipython-input-1-334c38b17d9d> in <module>
 ----> 1 feelpp.Environment.setConfigFile(f"{d}/src/cases/laplacian/fin/fin1/fin2d.cfg")
       2 # Reading the JSON file
       3 data = laplacian.loadSpecs(f"{d}/src/cases/laplacian/fin/fin2d.json")
       4 print(data)
 
-AttributeError: module 'feelpp' has no attribute 'Environment'</pre>
+NameError: name 'd' is not defined</pre>
 </div>
 </div>
 </div>
@@ -495,7 +495,7 @@ fig.show()</code></pre>
                 <img src="../../_/img/cemosis-logo.svg" alt="Cemosis logo" height="50">
             </a>
         </div>
-        <span style="font-size: 0.8rem; color: #9e9e9e">© 2023 <a href="https://www.cemosis.fr" style="text-decoration: underline;">Cemosis</a>, Université de Strasbourg</span>
+        <span style="font-size: 0.8rem; color: #9e9e9e">© 2024 <a href="https://www.cemosis.fr" style="text-decoration: underline;">Cemosis</a>, Université de Strasbourg</span>
     </div>
 </footer>
 <script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
