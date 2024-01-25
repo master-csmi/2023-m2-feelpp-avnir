@@ -193,8 +193,8 @@ void Laplacian<Dim, Order>::initialize()
     bool steady = get_value(specs_, "/TimeStepping/wave/steady", true);
     int time_order = get_value(specs_, "/TimeStepping/wave/order", 2);
     double initial_time = get_value(specs_, "/TimeStepping/wave/start", 0.0);
-    double final_time = get_value(specs_, "/TimeStepping/wave/end", 4.0);
-    double time_step = get_value(specs_, "/TimeStepping/wave/step", 0.002);
+    double final_time = get_value(specs_, "/TimeStepping/wave/end", 3.0);
+    double time_step = get_value(specs_, "/TimeStepping/wave/step", 0.001);
 
     // CFL condition
     // C = max(C(x,y))
@@ -345,7 +345,7 @@ void Laplacian<Dim, Order>::timeLoop()
     int it = 0;
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
-        tic();
+        // tic();
         if (Environment::isMasterRank())
             std::cout << "time " << bdf_->time() << std::endl;
         at_ += integrate( _range = elements(mesh_), _expr = (1/mu) * idt(u_) * id(v_) );
@@ -364,7 +364,7 @@ void Laplacian<Dim, Order>::timeLoop()
 
         at_.zero();
         lt_.zero();
-        toc("time loop");
+        // toc("time loop");
         it++;
     }
 }
