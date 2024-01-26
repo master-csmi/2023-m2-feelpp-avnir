@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "prose": "write-good --parse **/*.adoc",
-    "start": "http-server public/ -d -i",
+    "start": "http-server public/ -d -i -p 8070",
     "antora": "npx antora --stacktrace generate --cache-dir cache --clean site.yml",
     "validate": "npx antora --stacktrace generate --cache-dir cache --generator ./generator/xref-validator.js --clean site.yml",
     "linkcheck": "broken-link-checker --filter-level 3 --recursive --verbose"
