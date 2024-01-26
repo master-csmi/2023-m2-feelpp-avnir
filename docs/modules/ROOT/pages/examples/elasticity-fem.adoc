@@ -209,8 +209,9 @@ We can then define the initial displacement field stem:[u^1] as the solution of 
 [stem]
 ++++
 \begin{align}
-    \int_\Omega u_1 \cdot v \, dx &= \frac{\Delta t^2}{2} \int_\Omega \partial_t^2 u_0 \cdot v \, dx \\
-    &= \frac{\Delta t^2}{2} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\epsilon(u_0) : \epsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \right)
+    \int_\Omega u_1 \cdot v \, dx &= \frac{\Delta t^2}{2 \rho} \int_\Omega \partial_t^2 u_0 \cdot v \, dx \\
+    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\epsilon(u_0) : \epsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \right) \\
+    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \mathbf{Tr} \left( \epsilon(u_0) \epsilon(v)^T \right) \, dx + \int_\Gamma g_0 \cdot v \, ds \right)
 \end{align}
 ++++
 
@@ -278,4 +279,14 @@ Thus, we have shown that:
 \begin{equation}
     \epsilon(u_n) : \epsilon(v) = \text{Tr}(\epsilon(u_n) \epsilon(v)^T)
 \end{equation}
+++++
+
+Finally, we can rewrite the equation as:
+
+[stem]
+++++
+\begin{align}
+    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \epsilon(u_n) \epsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
+    &+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx
+\end{align}
 ++++
