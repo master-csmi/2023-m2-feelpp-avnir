@@ -85,6 +85,7 @@
         "state": "cpp",
         "valueobject": "cpp",
         "observer_ptr": "cpp",
-        "ref_ptr": "cpp"
+        "ref_ptr": "cpp",
+        "texture": "cpp"
     },
 }

@@ -31,12 +31,14 @@
 #include <feel/feelcore/utility.hpp>
 #include <feel/feeldiscr/pch.hpp>
 #include <feel/feeldiscr/minmax.hpp>
+#include <feel/feeldiscr/sensors.hpp>
 #include <feel/feelfilters/exporter.hpp>
 #include <feel/feelfilters/loadmesh.hpp>
 #include <feel/feelvf/form.hpp>
 #include <feel/feelvf/vf.hpp>
 #include <feel/feelvf/measure.hpp>
 #include <feel/feelts/bdf.hpp>
+
 
 namespace Feel
 {
@@ -102,7 +104,7 @@ class Elastic
 public:
     using mesh_t = Mesh<Simplex<Dim>>;
     using space_t = Pchv_type<mesh_t, Order>;
-    using space_ptr_t = Pchv_ptrtype<mesh_t, Order>; // Define the type for Pchv_ptrtype (don't forget the v for vectorial)
+    using space_ptr_t = Pchv_ptrtype<mesh_t, Order>; // Define the type for Pchv_ptrtype
     using element_ = typename space_t::element_type;
     using form2_type = form2_t<space_t,space_t>; // Define the type for form2
     using form1_type = form1_t<space_t>; // Define the type for form1
@@ -153,9 +155,6 @@ private:
     bdf_ptrtype bdf_;
     exporter_ptrtype e_;
     nl::json meas_;
-    // temporary solution for s, g, mu and rho
-    // See how Ginac expressions can be stored as members
-    // std::string Mu, Rho, S, G;
     double E, nu, lambda, mu;
     std::string F, G;
 };
@@ -195,7 +194,7 @@ void Elastic<Dim, Order>::initialize()
     bool steady = get_value(specs_, "/TimeStepping/wave/steady", true);
     int time_order = get_value(specs_, "/TimeStepping/wave/order", 2);
     double initial_time = get_value(specs_, "/TimeStepping/wave/start", 0.0);
-    double final_time = get_value(specs_, "/TimeStepping/wave/end", 4.0);
+    double final_time = get_value(specs_, "/TimeStepping/wave/end", 1.0);
     double time_step = get_value(specs_, "/TimeStepping/wave/step", 0.002);
 
     /////////////////////////////////////////////////////
@@ -205,64 +204,61 @@ void Elastic<Dim, Order>::initialize()
     nu = get_value(specs_, "/Parameters/elastic/nu/expr", 0.3); // Poisson ratio
     lambda = E*nu/( (1+nu)*(1-2*nu) );
     mu = E/(2*(1+nu));
-    // auto deft = sym(gradt(u_)); // transposed deformation gradient
-    // auto def = sym(grad(u_)); // deformation gradient
-    // auto Id = eye<FEELPP_DIM,FEELPP_DIM>();
-    // auto sigmat = lambda*trace(deft)*Id + 2*mu*deft;
-    // auto sigma = lambda*trace(def)*Id + 2*mu*def;
     F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
     G = specs_["/BoundaryConditions/elastic/Gamma/g/expr"_json_pointer].get<std::string>();
+    std::string DTU0 = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
     auto f = expr<FEELPP_DIM,1>(F);
     auto g = expr<FEELPP_DIM,1>(G);
+    auto dtu0 = expr<FEELPP_DIM,1>(DTU0);
     std::cout << "**** elasticity parameters initialized **** \n" << std::endl;
+
+
     /////////////////////////////////////////////////////
     //               Initial Condition                 //
     /////////////////////////////////////////////////////
+    std::cout << "**** Initialize Dirac **** \n" << std::endl;
+    node_type n(2);
+    n(0) = 1.; // coord_x
+    n(1) = 1.; // coord_y
+    // n(2) = 1.; // coord_z
+    auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+    auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
 
-    // Initialize the Dirac as a smoothstep
-    std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
-    double diracMagnitude = 10;
-    auto dirac = vec(
-        diracMagnitude * expr("smoothstep(x,0.95,1.05):x"),
-        diracMagnitude * expr("smoothstep(y,0.95,1.05):y")  );
-    std::cout << "**** Dirac initialized **** \n" << std::endl;
-
-    std::cout << "**** Initialization of u0 **** \n" << std::endl;
     auto u0_ = Xh_->element();
-    u0_.on(_range=elements(mesh_), _expr=dirac);
 
-    std::cout << "**** u0 initialized **** \n" << std::endl;
-
-    auto deft0 = sym(gradt(u0_)); // transposed deformation gradient
     auto def0 = sym(grad(u0_)); // deformation gradient
+    auto deft0 = sym(gradt(u0_)); // transposed deformation gradient
     auto Id = eye<FEELPP_DIM,FEELPP_DIM>();
-    auto sigmat0 = lambda*trace(deft0)*Id + 2*mu*deft0;
     auto sigma0 = lambda*trace(def0)*Id + 2*mu*def0;
+    auto sigmat0 = lambda*trace(deft0)*Id + 2*mu*deft0;
+    double rho = 1.0;
 
-    tic();
+
     l_.zero();
-    // l_ += on( _range = elements(mesh_), _rhs=l_, _element=v_, _expr = dirac);
-    l_ += integrate( _range = elements(mesh_), _expr = inner(f,id(v_)) );
-    toc("first step for l");
-
-    tic();
     a_.zero();
-    a_ += integrate( _range = elements(mesh_), _expr = inner( sigma0, grad(v_) ) );
-    a_ += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = -inner(sigma0*N(), id(v_)) );
-
-    // at_ += integrate( _range = elements(mesh_), _expr = inner( lambda*grad(u0_)*Id + mu*(grad(u0_)+gradt(u0_)) , grad(v_)));
-    // at_ += integrate( _range = markedfaces(mesh_,"Gamma"), _expr = -inner(lambda*grad(u0_)*Id + mu*(grad(u0_)+gradt(u0_)) * N() , id(v_)));
-
-    // a_ += on( _range=markedfaces(mesh_, "Gamma"), _rhs=l_, _element=u_, _expr=g );
-    toc("first step for a");
-
-    a_.solve( _rhs = l_, _solution = u_ );
-
+    std::cout << "**** Compute 1 **** \n" << std::endl;
+    a_ += integrate( _range = elements(mesh_), _expr = inner(idt(u_), id(v_)) ); //1
+    // std::cout << "**** Compute 2 **** \n" << std::endl;
+    // f_0 += integrate(_range = elements(mesh_), _expr = time_step * time_step / rho / 2 * id(v_)); // contribution du dirac évalué sur v
+    std::cout << "**** Compute 3 **** \n" << std::endl;
+    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(grad(u0_),grad(v_))); //3
+    std::cout << "**** Compute 4 **** \n" << std::endl;
+    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(grad(u0_)*sym(gradt(v_))))); //4
+    std::cout << "**** Compute 5 **** \n" << std::endl;
+    f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
+    std::cout << "**** Solve **** \n" << std::endl;
+    a_.solve( _rhs = f_0, _solution = u_ );
     /////////////////////////////////////////////////////
     //                 CFL Condition                   //
     /////////////////////////////////////////////////////
+    // adjustments needed below
     double C = specs_["/Parameters/wave/c/expr"_json_pointer].get<double>();
     time_step = std::min(time_step, H/C);
+
+
+    ////////////////////////////////////////////////////
+    //                Initialize BDF                  //
+    ////////////////////////////////////////////////////
 
     bdf_ = Feel::bdf( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
 
@@ -270,11 +266,9 @@ void Elastic<Dim, Order>::initialize()
     if ( steady )
         bdf_->setSteady();
 
-    ////////////////////////////////////////////////////
-    //                Initialize BDF                  //
-    ////////////////////////////////////////////////////
-    bdf_->initialize( u0_ );
-    bdf_->shiftRight( u_ );
+    bdf_->initialize( u0_ ); // set u0_
+    bdf_->shiftRight( u_ ); // set u1_
+
 
     if ( steady )
         std::cout << "\n***** Compute Steady state *****" << std::endl;
@@ -373,27 +367,28 @@ void Elastic<Dim, Order>::timeLoop()
     ////////////////////////////////////////////////////
     auto f = expr<FEELPP_DIM,1>(F);
     auto g = expr<FEELPP_DIM,1>(G);
+    double rho = 1.0;
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
-        auto deft = sym(gradt(u_));
-        auto def = sym(grad(u_));
+        // u_ = u_n+1
+        auto un = bdf_->unknown(0); // un = u_n
+        auto un_1 = bdf_->unknown(1);  // un_1 = u_{n-1}
+
+        auto dt = expr(bdf_->timeStep());
+
+        auto def = sym(grad(un));
+        auto deft = sym(gradt(un));
         auto Id = eye<FEELPP_DIM,FEELPP_DIM>();
-        auto sigmat = lambda*trace(deft)*Id + 2*mu*deft;
         auto sigma = lambda*trace(def)*Id + 2*mu*def;
+        auto sigmat = lambda*trace(deft)*Id + 2*mu*deft;
 
-        lt_ += integrate( _range = elements(mesh_),
-                    _expr = inner(f,id(v_)));
+        at_ += integrate( _range = elements(mesh_), _expr = inner(id(u_), id(v_)) );
 
-        at_ += integrate( _range = elements(mesh_), _expr = inner( sigma, grad(v_) ) );
-        at_ += integrate(_range=markedfaces(mesh_,"Gamma"), _expr=-inner(sigma*N(),id(v_)));
-
-        // at_ += integrate( _range = elements(mesh_), _expr = inner( lambda*grad(u_)*Id + mu*(grad(u_)+gradt(u_)) , grad(v_)));
-        // at_ += integrate( _range = markedfaces(mesh_,"Gamma"), _expr = -inner(lambda*grad(u_)*Id + mu*(grad(u_)+gradt(u_)) * N() , id(v_)));
-
-        // at_ += on( _range=markedfaces(mesh_, "Gamma"), _rhs=lt_, _element=u_, _expr=g )
-
-
-        // at_ += integrate(_range=markedfaces(mesh_,"Gamma"), _expr=-inner(sigmat*N(),id(u_)) + inner(-sigma*N()+std::max(2*mu,lambda)*id(u_),idt(u_)) );
+        lt_ += integrate( _range = elements(mesh_), _expr = dt*dt/rho * inner(f,id(v_))); //1
+        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * lambda * inner(grad(un),grad(v_))); //3
+        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * 2 * mu * trace(inner(sym(grad(un)),sym(gradt(v_))))); //4
+        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = dt*dt/rho * inner(g, id(v_))); //5
+        lt_ += integrate( _range = elements(mesh_), _expr = 2*inner(id(un),id(v_)) - inner(id(un_1),id(v_))); //6
 
         at_.solve( _rhs = lt_, _solution = u_ );
 
