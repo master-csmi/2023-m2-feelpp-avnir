@@ -19,7 +19,7 @@ Let us define the following quantities:
 * stem:[\Omega \subset \mathbb{R}^3] the domain of the problem
 * stem:[\Gamma = \partial \Omega] the boundary of the domain
 * stem:[\sigma] the stress field (constraints tensor)
-* stem:[\epsilon(u) = \frac{1}{2}(\nabla u + \nabla u^T)] the linearized deformation field
+* stem:[\varepsilon(u) = \frac{1}{2}(\nabla u + \nabla u^T)] the linearized deformation field
 
 In the case of static linear elasticity, we can define the equilibrium condition as:
 
@@ -95,11 +95,11 @@ where stem:[V] is a suitable function space. In order to do so, we can multiply 
 \begin{align}
     \int_{\Omega} \rho u_{tt} \cdot v \, dx - \int_{\Omega} \nabla \cdot \sigma \cdot v \, dx &= \int_{\Omega} f \cdot v \, dx \\
     \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \nabla v \, dx - \int_{\Gamma} \sigma \cdot n \cdot v \, ds &= \int_{\Omega} f \cdot v \, dx \\
-    \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \epsilon(v) \, dx &= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} g \cdot v \, ds
+    \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \varepsilon(v) \, dx &= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} g \cdot v \, ds
 \end{align}
 ++++
 
-where stem:[\sigma : \epsilon (v)] denotes the maximal contraction of the tensors stem:[\sigma] and stem:[\epsilon(v)], equal to stem:[\sum_{i, j} \sigma_{ij} \epsilon(v)_{ij}]. Proof:
+where stem:[\sigma : \varepsilon (v)] denotes the maximal contraction of the tensors stem:[\sigma] and stem:[\varepsilon(v)], equal to stem:[\sum_{i, j} \sigma_{ij} \varepsilon(v)_{ij}]. Proof:
 
 Let us consider the 2D case (3D can be proven in the same manner). We start by defining:
 
@@ -118,12 +118,11 @@ We denote by stem:[u_{1i}] the partial derivative of stem:[u_1] with respect to 
 \begin{align}
 \sigma(\mathbf{u}) : \nabla \mathbf{v} &= \left( (\lambda + 2 \mu)u_{1i} + \lambda u_{2j} \right)v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) v_{1j}\\
 &+ \left( \mu (u_{1j} + u_{2i}) \right) v_{2i} + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
-\sigma(\mathbf{u}) : \epsilon(\mathbf{v}) &= \left( (\lambda + 2 \mu ) u_{1i} + \lambda u_{2j} \right) v_{1i} \\
-&+ \left( \mu (u_{1j} + u_{2i}) \right) \cdot \frac{1}{2}(v_{1j} + v_{2i}) \\
-&+ \left( \lambda u_{1i} + (\lambda + 2 \mu ) u_{2j} \right) v_{2j} \\
-&=  \left( (\lambda + 2 \mu )u_{1i} + \lambda u_{2j} \right) v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) v_{2i} \\
-&+ \left( \lambda u_{1i} + (\lambda + 2 \mu ) u_{2j} \right) v_{2j} \\
-\sigma(\mathbf{u}) : \nabla \mathbf{v} &= \sigma(\mathbf{u}) : \epsilon(\mathbf{v})
+\sigma(\mathbf{u}) : \varepsilon(\mathbf{v}) &= \left( (\lambda + 2 \mu ) u_{1i} + \lambda u_{2j} \right) v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) \cdot \frac{1}{2}(v_{1j} + v_{2i}) \\
+&+ \left( \mu (u_{1j} + u_{2i}) \right) \cdot \frac{1}{2}(v_{1j} + v_{2i}) + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+&=  \left( (\lambda + 2 \mu)u_{1i} + \lambda u_{2j} \right)v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) v_{1j}\\
+&+ \left( \mu (u_{1j} + u_{2i}) \right) v_{2i} + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+\sigma(\mathbf{u}) : \nabla \mathbf{v} &= \sigma(\mathbf{u}) : \varepsilon(\mathbf{v})
 \end{align}
 ++++
 
@@ -133,8 +132,8 @@ In order to be able to solve for stem:[u], we need to define stem:[a(u,v)] and s
 [stem]
 ++++
 \begin{align}
-\sigma(\mathbf{u}) : \epsilon(\mathbf{v}) &= \lambda(\nabla \mathbf{u})I : \epsilon(\mathbf{v}) + 2\mu\epsilon(\mathbf{u}) : \epsilon(\mathbf{v}) \\
-&= \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\epsilon(\mathbf{u}) : \epsilon(\mathbf{v})
+\sigma(\mathbf{u}) : \varepsilon(\mathbf{v}) &= \lambda(\nabla \mathbf{u})I : \varepsilon(\mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v}) \\
+&= \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v})
 \end{align}
 ++++
 
@@ -142,9 +141,9 @@ In order to be able to solve for stem:[u], we need to define stem:[a(u,v)] and s
 [stem]
 ++++
 \begin{align}
-    a(u, v) &= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \epsilon(v) \, dx \\
-    a(u, v) &= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\epsilon(\mathbf{u}) : \epsilon(\mathbf{v}) \, dx \\
-    l(v) &= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} \sigma \cdot n \cdot v \, ds
+    a(u, v) &= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \varepsilon(v) \, dx \\
+    a(u, v) &= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v}) \, dx \\
+    l(v) &= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} g \cdot v \, ds
 \end{align}
 ++++
 
@@ -190,7 +189,7 @@ Where stem:[f_0] represents the intial external force applied onto the medium (i
 \begin{align}
     \int_\Omega \partial_t^2 u^0 \cdot v \, dx - \int_\Omega \nabla \cdot \sigma(u_0) \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx \\
     \int_\Omega \partial_t^2 u^0 \cdot v \, dx + \int_\Omega \sigma(u_0) : \nabla v \, dx - \int_\Gamma \sigma(u_0) \cdot n \cdot v \, ds &= \int_\Omega f_0 \cdot v \, dx \\
-    \int_\Omega \partial_t^2 u^0 \cdot v \, dx + \int_\Omega \sigma(u_0) : \epsilon(v) \, dx &= \int_\Omega f_0 \cdot v \, dx + \int_\Gamma g_0 \cdot v \, ds
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx + \int_\Omega \sigma(u_0) : \varepsilon(v) \, dx &= \int_\Omega f_0 \cdot v \, dx + \int_\Gamma g_0 \cdot v \, ds
 \end{align}
 ++++
 
@@ -199,8 +198,8 @@ Which gives us the following expression for stem:[\partial_t^2 u^0]:
 [stem]
 ++++
 \begin{align}
-    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \sigma(u_0) : \epsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \\
-    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\epsilon(u_0) : \epsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \sigma(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \\
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\varepsilon(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds
 \end{align}
 ++++
 
@@ -210,8 +209,8 @@ We can then define the initial displacement field stem:[u^1] as the solution of 
 ++++
 \begin{align}
     \int_\Omega u_1 \cdot v \, dx &= \frac{\Delta t^2}{2 \rho} \int_\Omega \partial_t^2 u_0 \cdot v \, dx \\
-    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\epsilon(u_0) : \epsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \right) \\
-    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \mathbf{Tr} \left( \epsilon(u_0) \epsilon(v)^T \right) \, dx + \int_\Gamma g_0 \cdot v \, ds \right)
+    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\varepsilon(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \right) \\
+    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \mathbf{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx + \int_\Gamma g_0 \cdot v \, ds \right)
 \end{align}
 ++++
 
@@ -222,7 +221,7 @@ We can adapt the weak formulation to the time discretization scheme we want to u
 [stem]
 ++++
 \begin{align}
-    \int_\Omega \frac{u_{n+1} - 2 u_n + u_{n-1}}{\Delta t^2} \cdot v \, dx + \int_\Omega \sigma(u_n) : \epsilon(v) \, dx - \int_\Gamma g \cdot v \, ds &= \int_\Omega f_n \cdot v \, dx
+    \int_\Omega \frac{u_{n+1} - 2 u_n + u_{n-1}}{\Delta t^2} \cdot v \, dx + \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx - \int_\Gamma g \cdot v \, ds &= \int_\Omega f_n \cdot v \, dx
 \end{align}
 ++++
 
@@ -231,53 +230,53 @@ But we want to solve for stem:[u^{n+1}], meaning we have to rewrite the equation
 [stem]
 ++++
 \begin{align}
-    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \sigma(u_n) : \epsilon(v) \, dx + \int_\Gamma \sigma(u_n) \cdot n \cdot v \, ds \right) \\
+    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx + \int_\Gamma \sigma(u_n) \cdot n \cdot v \, ds \right) \\
     &+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx \\
-    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu\epsilon(u_n) : \epsilon(v) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
+    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu\varepsilon(u_n) : \varepsilon(v) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
     &+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx
 \end{align}
 ++++
 
-But we can simplify the equation by rewriting the maximal contraction. Let stem:[\epsilon(u_n)] and stem:[\epsilon(v)] be two stem:[3 \times 3] real matrices, with elements stem:[\epsilon(u_n)_{ij}] and stem:[epsilon(v)_{ij}] respectively. The maximal contraction (double dot product) of stem:[\sigma] and stem:[\epsilon] is defined as:
+But we can simplify the equation by rewriting the maximal contraction. Let stem:[\varepsilon(u_n)] and stem:[\varepsilon(v)] be two stem:[3 \times 3] real matrices, with elements stem:[\varepsilon(u_n)_{ij}] and stem:[epsilon(v)_{ij}] respectively. The maximal contraction (double dot product) of stem:[\sigma] and stem:[\varepsilon] is defined as:
 [stem]
 ++++
 \begin{equation}
-    \epsilon(u_n) : \epsilon(v) = \sum_{i=1}^{3} \sum_{j=1}^{3} \epsilon(u_n)_{ij} \epsilon(v)_{ij}
+    \varepsilon(u_n) : \varepsilon(v) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ij}
 \end{equation}
 ++++
-To express this using matrix operations, consider the trace of the product of stem:[\epsilon(u_n)] and stem:[\epsilon(v)^T] (the transpose of stem:[\epsilon(v)]):
+To express this using matrix operations, consider the trace of the product of stem:[\varepsilon(u_n)] and stem:[\varepsilon(v)^T] (the transpose of stem:[\varepsilon(v)]):
 [stem]
 ++++
 \begin{equation}
-    \text{Tr}(\epsilon(u_n) \epsilon(v)^T) = \sum_{i=1}^{3} (\epsilon(u_n) \epsilon(v)^T)_{ii}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} (\varepsilon(u_n) \varepsilon(v)^T)_{ii}
 \end{equation}
 ++++
-The element stem:[(\epsilon(u_n) \epsilon(v)^T)_{ii}] is the dot product of the $i$th row of stem:[\epsilon(u_n)] and the $i$th row of $\epsilon(v)^T$. This is equivalent to the sum of the products of corresponding elements in the $i$th row of stem:[\epsilon(u_n)] and the stem:[i]th column of stem:[\epsilon(v)]:
+The element stem:[(\varepsilon(u_n) \varepsilon(v)^T)_{ii}] is the dot product of the $i$th row of stem:[\varepsilon(u_n)] and the $i$th row of $\varepsilon(v)^T$. This is equivalent to the sum of the products of corresponding elements in the $i$th row of stem:[\varepsilon(u_n)] and the stem:[i]th column of stem:[\varepsilon(v)]:
 [stem]
 ++++
 \begin{equation}
-    (\epsilon(u_n) \epsilon(v)^T)_{ii} = \sum_{j=1}^{3} \epsilon(u_n)_{ij} \epsilon(v)_{ji}
+    (\varepsilon(u_n) \varepsilon(v)^T)_{ii} = \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ji}
 \end{equation}
 ++++
 Therefore, the trace is:
 [stem]
 ++++
 \begin{equation}
-    \text{Tr}(\epsilon(u_n) \epsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \epsilon(u_n)_{ij} \epsilon(v)_{ji}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ji}
 \end{equation}
 ++++
-Since stem:[\epsilon(v)^T] has stem:[\epsilon(v)_{ji}] as its stem:[(i, j)]-element, the expression becomes:
+Since stem:[\varepsilon(v)^T] has stem:[\varepsilon(v)_{ji}] as its stem:[(i, j)]-element, the expression becomes:
 [stem]
 ++++
 \begin{equation}
-    \text{Tr}(\epsilon(u_n) \epsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \epsilon(u_n)_{ij} \epsilon(v)_{ij} = \epsilon(u_n) : \epsilon(v)
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ij} = \varepsilon(u_n) : \varepsilon(v)
 \end{equation}
 ++++
 Thus, we have shown that:
 [stem]
 ++++
 \begin{equation}
-    \epsilon(u_n) : \epsilon(v) = \text{Tr}(\epsilon(u_n) \epsilon(v)^T)
+    \varepsilon(u_n) : \varepsilon(v) = \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T)
 \end{equation}
 ++++
 
@@ -286,7 +285,7 @@ Finally, we can rewrite the equation as:
 [stem]
 ++++
 \begin{align}
-    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \epsilon(u_n) \epsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
+    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
     &+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx
 \end{align}
 ++++
