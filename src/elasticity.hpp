@@ -219,10 +219,10 @@ void Elastic<Dim, Order>::initialize()
     //               Initial Condition                 //
     /////////////////////////////////////////////////////
     std::cout << "**** Initialize Dirac **** \n" << std::endl;
-    node_type n(3);
+    node_type n(2);
     n(0) = 0.1; // coord_x
     n(1) = 0.1; // coord_y
-    n(2) = 0.1; // coord_z
+    // n(2) = 0.1; // coord_z
     auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
     // auto s = std::make_shared<SensorPointwise<Feel::Pch_type<Feel::Mesh<Feel::Simplex<Dim>>, Order>>>(Xh_, n, "S");
     auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
