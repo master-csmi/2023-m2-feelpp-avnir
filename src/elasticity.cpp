@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     {
         Environment env(_argc = argc, _argv = argv,
                         _desc = makeOptions(),
-                        _about = about(_name = fmt::format("laplacian-{}dp{}", FEELPP_DIM, FEELPP_ORDER),
+                        _about = about(_name = fmt::format("elasticity-{}dp{}", FEELPP_DIM, FEELPP_ORDER),
                                        _author = "Feel++ Consortium",
                                        _email = "feelpp@cemosis.fr"));
         auto jsonfile = removeComments(readFromFile(Environment::expand(soption("specs"))));

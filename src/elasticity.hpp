@@ -106,6 +106,7 @@ public:
     using space_t = Pchv_type<mesh_t, Order>;
     using space_ptr_t = Pchv_ptrtype<mesh_t, Order>; // Define the type for Pchv_ptrtype
     using element_ = typename space_t::element_type;
+    // using node_type = typename space_t::node_type;
     using form2_type = form2_t<space_t,space_t>; // Define the type for form2
     using form1_type = form1_t<space_t>; // Define the type for form1
     using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>;
@@ -210,6 +211,7 @@ void Elastic<Dim, Order>::initialize()
     auto f = expr<FEELPP_DIM,1>(F);
     auto g = expr<FEELPP_DIM,1>(G);
     auto dtu0 = expr<FEELPP_DIM,1>(DTU0);
+    auto u0_ = Xh_->element();
     std::cout << "**** elasticity parameters initialized **** \n" << std::endl;
 
 
@@ -217,33 +219,45 @@ void Elastic<Dim, Order>::initialize()
     //               Initial Condition                 //
     /////////////////////////////////////////////////////
     std::cout << "**** Initialize Dirac **** \n" << std::endl;
-    node_type n(2);
-    n(0) = 1.; // coord_x
-    n(1) = 1.; // coord_y
-    // n(2) = 1.; // coord_z
+    node_type n(3);
+    n(0) = 0.1; // coord_x
+    n(1) = 0.1; // coord_y
+    n(2) = 0.1; // coord_z
     auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+    // auto s = std::make_shared<SensorPointwise<Feel::Pch_type<Feel::Mesh<Feel::Simplex<Dim>>, Order>>>(Xh_, n, "S");
     auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
 
-    auto u0_ = Xh_->element();
+    /////////////////////////////////////////////////
+    //         Test using different dirac          //
+    /////////////////////////////////////////////////
+    // // Initialize the Dirac as a smoothstep
+    // std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
+    // auto f_0 = form1(_test = Xh_);
+    // double diracMagnitude = 1.;
+    // auto dirac = vec(
+    //     diracMagnitude * expr("smoothstep(x,0.95,1.05):x"),
+    //     diracMagnitude * expr("smoothstep(y,0.95,1.05):y")  );
+    // std::cout << "**** Dirac initialized **** \n" << std::endl;
+    // std::cout << "**** Initialization of u0 **** \n" << std::endl;
+    // u0_.on(_range=elements(mesh_), _expr=dirac);
+    // f_0 += integrate(_range = elements(mesh_), _expr = inner(dirac,idv(v_)));
 
-    auto def0 = sym(grad(u0_)); // deformation gradient
-    auto deft0 = sym(gradt(u0_)); // transposed deformation gradient
-    auto Id = eye<FEELPP_DIM,FEELPP_DIM>();
-    auto sigma0 = lambda*trace(def0)*Id + 2*mu*def0;
-    auto sigmat0 = lambda*trace(deft0)*Id + 2*mu*deft0;
     double rho = 1.0;
+
+    std::cout << "Dim : " << FEELPP_DIM << std::endl;
+    std::cout << "Order : " << FEELPP_ORDER << std::endl;
 
 
     l_.zero();
     a_.zero();
     std::cout << "**** Compute 1 **** \n" << std::endl;
-    a_ += integrate( _range = elements(mesh_), _expr = inner(idt(u_), id(v_)) ); //1
-    // std::cout << "**** Compute 2 **** \n" << std::endl;
+    a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
+    std::cout << "**** Compute 2 **** \n" << std::endl;
     // f_0 += integrate(_range = elements(mesh_), _expr = time_step * time_step / rho / 2 * id(v_)); // contribution du dirac évalué sur v
     std::cout << "**** Compute 3 **** \n" << std::endl;
-    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(grad(u0_),grad(v_))); //3
+    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
     std::cout << "**** Compute 4 **** \n" << std::endl;
-    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(grad(u0_)*sym(gradt(v_))))); //4
+    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
     std::cout << "**** Compute 5 **** \n" << std::endl;
     f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
     std::cout << "**** Solve **** \n" << std::endl;
@@ -370,25 +384,21 @@ void Elastic<Dim, Order>::timeLoop()
     double rho = 1.0;
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
+        if (Environment::isMasterRank())
+            std::cout << "time " << bdf_->time() << std::endl;
         // u_ = u_n+1
         auto un = bdf_->unknown(0); // un = u_n
         auto un_1 = bdf_->unknown(1);  // un_1 = u_{n-1}
 
         auto dt = expr(bdf_->timeStep());
 
-        auto def = sym(grad(un));
-        auto deft = sym(gradt(un));
-        auto Id = eye<FEELPP_DIM,FEELPP_DIM>();
-        auto sigma = lambda*trace(def)*Id + 2*mu*def;
-        auto sigmat = lambda*trace(deft)*Id + 2*mu*deft;
-
-        at_ += integrate( _range = elements(mesh_), _expr = inner(id(u_), id(v_)) );
+        at_ += integrate( _range = elements(mesh_), _expr = trans(idt(u_))*id(v_) );
 
         lt_ += integrate( _range = elements(mesh_), _expr = dt*dt/rho * inner(f,id(v_))); //1
-        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * lambda * inner(grad(un),grad(v_))); //3
-        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * 2 * mu * trace(inner(sym(grad(un)),sym(gradt(v_))))); //4
-        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = dt*dt/rho * inner(g, id(v_))); //5
-        lt_ += integrate( _range = elements(mesh_), _expr = 2*inner(id(un),id(v_)) - inner(id(un_1),id(v_))); //6
+        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * lambda * inner(gradv(un),grad(v_))); //2
+        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * 2 * mu * trace(sym(gradv(un)) * trans(sym(grad(v_)) ))); //3
+        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = dt*dt/rho * inner(g, id(v_))); //4
+        lt_ += integrate( _range = elements(mesh_), _expr = 2*inner(id(un),id(v_)) - inner(id(un_1),id(v_))); //5
 
         at_.solve( _rhs = lt_, _solution = u_ );
 
