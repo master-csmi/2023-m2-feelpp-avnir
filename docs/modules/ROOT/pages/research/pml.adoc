@@ -1,0 +1,73 @@
+= Perfectly Matched Layer for the Wave Equation
+Obèd SABA
+
+== Introduction
+
+Acoustic wave propagation in urban environments is a complex and vital field of study with applications spanning urban engineering, environmental acoustics, and urban planning. The ability to predict and analyze sound diffusion in cityscapes is crucial for designing living environments that are both comfortable and compliant with noise regulations. However, accurately modeling the spread of sound waves faces significant challenges due to the diversity of urban structures, the interaction of waves with various obstacles, and the need to simulate extensive open spaces.
+
+Against this backdrop, the adoption of advanced numerical methods such as Perfectly Matched Layers stem:[\texttt{(PML)}] has emerged as a solution for absorbing acoustic waves at the computational domain boundaries, thereby simulating a semi-infinite medium without spurious reflections. Originally introduced in the context of stem:[\texttt{Maxwell}]'s equations, PMLs have since been adapted and refined for a wide array of wave physics applications.
+
+This report details the development and implementation of a stem:[\texttt{Feel++}]-based model for the study of acoustic wave propagation in a urban neighborhood, modeled as a homogenous medium at the scale of a city block. We will delve into the underlying theory of stem:[\texttt{PMLs}] and their integration into the acoustic wave equation, with a focus on the non-reflecting conditions of the waves. 
+
+Acoustic wave propagation is given by the following equation:
+[stem]
+++++
+\frac{1}{\mu}\frac{\partial^2 p}{\partial t^2} - \nabla \cdot \left( \frac{1}{\rho} \nabla p \right) = \frac{\partial F}{\partial t}
+++++
+
+For the sake of simplicity, we will introduce the stem:[\texttt{PMLs}] to the first-order acoustic system in time:
+[stem]
+++++
+\begin{align*}
+\frac{1}{\mu}\frac{\partial p}{\partial t} - \nabla \cdot v &= F \qquad \text{ in } \Omega \times (0,T) \\
+\rho \frac{\partial v}{\partial t} - \nabla p &= 0 \qquad \text{ in } \Omega \times (0,T) \\
+p(x,0) &= 0 \qquad \text{ in } \Omega \\
+v(x,0) &= 0 \qquad \text{ in } \Omega 
+\end{align*}
+++++
+
+where stem:[p] is the acoustic pressure, stem:[v] is the acoustic velocity, stem:[\mu] is the dynamic viscosity, stem:[\rho] is the density, and stem:[F] is the source term. 
+
+Initially, we implement a Perfectly Matched Layer stem:[\texttt{(PML)}] formulation that is of order stem:[d] in time. Assuming the differentiability of the absorption coefficients, we demonstrate the feasibility of achieving an optimal first-order system in time.
+
+== Setting up a formulation in PML
+
+We now revisit the PML method that aims at constructing artificial layers (of finite thickness) surrounding the physical bounded domain stem:[\Omega_{BD}] and designed in such a way that the incoming waves (entering into the layers) are not reflected at the interface with the physical domain and decay exponentially into them.
+In the following, we implicitly assume that all the outgoing waves (leaving the physical domain of interest) correspond to purely forward propagating waves in the direction normal to the interface, i.e. there is no backward propagating waves or evanescent waves.
+
+We consider a bounded Cartesian domain stem:[\Omega_{BD} = [-l_i,l_i \]^d] surrounded by an artificial absorbing layer (the stem:[\texttt{PML}] region) stem:[\Omega_{PML} = [-l_i - h_i, l_i + h_i \]^d \setminus \Omega_{BD}] with stem:[h_i] the thickness of the stem:[\texttt{PML}] layer. The stem:[\texttt{PML}] region stem:[\Omega_{PML}] is divided into stem:[d] subdomains stem:[\Omega_i] with stem:[i = 1, \dots, d] such that stem:[\Omega_i = \{x \in \Omega_{PML} ; |x_i| > l_i \}] and the outgoing propagative waves are attenuated in the stem:[xi]-direction within stem:[\texttt{PML}] subregions stem:[\Omega_i].
+
+.A Illustration of the PML region in 2D
+image::ROOT:pml_fig.png[pml_fig,500,200]
+
+Physical bounded domain stem:[\Omega_{BD}] surrounded by an artificial stem:[\texttt{PML}] region stem:[\Omega_{PML} = \cup_{i=1}^d \Omega_i] divided into stem:[d] overlapping subregions stem:[\Omega_i] with interface stem:[\Gamma = \partial\Omega_{BD} \cap \partial\Omega_{PML}] and exterior boundary stem:[\Gamma_{ext} = \partial\Omega_{PML} \setminus \Gamma] .
+
+We denote by stem:[\Gamma = \partial\Omega_{BD} \cap \partial\Omega_{PML}] and stem:[\Gamma_i = \partial\Omega_{BD} \cap \partial\Omega_{i}] , the interface between the physical domain stem:[\Omega_{BD}] and the PML region stem:[\Omega_{PML}] (resp. the PML subregion stem:[\Omega_{i}]) , and by stem:[n = n_i e_i] the unit normal vector to stem:[\Gamma] pointing outward stem:[\Omega_{BD}] . Furthermore, we define the entire domain stem:[\Omega = \Omega_{BD} \cup \Omega_{PML}] as the disjoint union between stem:[\Omega_{BD}] and stem:[\Omega_{PML}] , and we denote by stem:[\Gamma_{ext}] the part of its boundary stem:[\partial\Omega] that coincides with the exterior boundary of stem:[\Omega_{PML}] , that is stem:[\Gamma_{ext} = \partial\Omega_{PML} \setminus \Gamma \cup \Gamma_{free}] , where stem:[\Gamma_{free}] stands for the possible free surfaces in the case where a semi-infinite medium with free-surface boundary conditions is considered.
+
+=== Complex coordinate stretching
+
+In the frequency domain, the stem:[\texttt{PML}] method consists in analytically stretching one or more real spatial coordinate(s) of the physical wave equations into the complex plane stem:[\mathcal{C}], the ones corresponding to the direction(s) along which the outwardly propagating waves have to be attenuated in the absorbing layers. In the following, for any complex number stem:[z \in \mathbb{C}], we denote by stem:[\mathcal{R}_e(z)] and stem:[\mathcal{I}_m(z)] the real and imaginary parts of stem:[z] respectively.
+
+Following the complex coordinate stretching, we introduce a complex change stem:[\tilde{x}_j] defined by:
+[stem]
+++++
+\tilde{x}_j = x_j + \frac{i}{\omega} \int_0^{x_j} \tau_j(s) ds
+++++
+(5.10)
+
+where the functions stem:[\tau_j] , ranging from 1 to d, are continuous, positive functions that depend only on stem:[x_j] and are zero in the physical domain (i.e., for negative stem:[x_j] ). In our case, we will further assume that these functions are differentiable and have continuous derivatives (thus zero in the physical domain).
+
+The functions stem:[\tau_j] are called absorption coefficients following stem:[x_j].
+
+=== Implementation steps
+
+For the implementation of the formulation in the stem:[\texttt{PMLs}], we will proceed as follows:
+
+. Transition to the frequency domain through the application of the Fourier transform in time.
+. Extension of the equations into the complex space thanks to the new coordinate system stem:[(\tilde{x}_j)_{j=1..d}].
+. Introduction of the complex parameter for the reinterpretation of the system in the form of partial differential equations in stem:[(x_j)_{j=1..d}].
+. Introduction of new unknowns in order to obtain a system that involves only positive powers of stem:[-i\omega], the goal being to reinterpret the obtained system in the form of temporal partial differential equations.
+. Obtain the system to be solved in stem:[\texttt{PML}] by applying the inverse Fourier time Fourier transform to the system obtained in step 4.
+
+[qanda]
+Step 1::
