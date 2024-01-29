@@ -386,7 +386,7 @@ One can execute the code using the following command:
 [source,bash]
 ----
 cd build/default/src &&
-./feelpp_fs_elasticity --config-file ../../../src/cases/laplacian/onde/elastic.cfg
+./feelpp_fs_elasticity --config-file ../../../src/cases/elastic/elastic.cfg
 ----
 
 The results are automatically exported to the feelpp database, it's location is given at the end of the execution in the
