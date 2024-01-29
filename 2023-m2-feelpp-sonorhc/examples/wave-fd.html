@@ -152,9 +152,6 @@ MathJax.Hub.Config({
     <button class="nav-item-toggle"></button>
     <a class="nav-link" href="index.html">Use Cases</a>
 <ul class="nav-list">
-  <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="fin.html">Thermal Fin</a>
-  </li>
   <li class="nav-item is-current-page" data-depth="2">
     <a class="nav-link" href="wave-fd.html">Acoustic Wave FDTD</a>
   </li>
@@ -777,10 +774,10 @@ central difference, we obtain a relation between
 <pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">from feelpp_sonorhc.fd import wave_2d
 import numpy as np
 
-L, nx = 2., 100
-H, ny = 2., 100
+L, nx = 2., 40
+H, ny = 2., 40
 T = 4.
-c = 4. # m/s
+c = 1.0 # m/s
 
 # source term
 def s(x: np.ndarray, y: np.ndarray, t: float) -&gt; np.ndarray:
@@ -812,7 +809,7 @@ print(U.shape)</code></pre>
 <div class="content">
 <div class="literalblock dynamic-py-result">
 <div class="content">
-<pre>(10201, 1132)</pre>
+<pre>(1681, 114)</pre>
 </div>
 </div>
 </div>
@@ -823,43 +820,75 @@ print(U.shape)</code></pre>
 <h2 id="_visualization"><a class="anchor" href="#_visualization"></a>3. Visualization</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>We use the library pyvista to visualize the solution.</p>
+<p>We use the library plotly to visualize the solution.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">import pyvista as pv
-from IPython.display import Image, display
+<pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">import numpy as np
+import plotly.graph_objs as go
 
-multi_block = pv.MultiBlock()
 x = np.linspace(0, L, nx + 1)
 y = np.linspace(0, H, ny + 1)
 x, y = np.meshgrid(x, y)
-z = np.zeros_like(x)
 
+# create figure
+fig = go.Figure()
+
+# create frames
+frames = []
 for i in range(U.shape[1]):
-    z = U[:, i].reshape(nx + 1, ny + 1)
-    grid = pv.StructuredGrid(x, y, z)
-    grid["Amplitude"] = z.ravel()
-    multi_block[f"Time_{i}"] = grid
+    z = U[:, i].reshape(nx + 1, ny + 1)  # reshape to 2D array
+    frame = go.Frame(data=[go.Surface(z=z, x=x, y=y, colorscale='Viridis', cmin=np.min(U), cmax=np.max(U))],
+                     name=f'frame{i}')
+    frames.append(frame)
 
-plotter = pv.Plotter()
-plotter.open_gif("wave_animation.gif")
+# add data to be displayed before animation starts
+fig.add_trace(go.Surface(z=frames[0].data[0].z, x=x, y=y, colorscale='Viridis', cmin=np.min(U), cmax=np.max(U)))
 
-T_iter = len(multi_block_3D)
-min_value = np.min(U)
-max_value = np.max(U)
+# setup frames for animation
+fig.frames = frames
 
-for i in range(len(multi_block_3D)):
-    plotter.clear()
-    block = multi_block_3D[i]
-    plotter.add_mesh(block, cmap="coolwarm", show_edges=False, clim=(min_value, max_value))
-    plotter.view_isometric()
-    plotter.add_axes()
-    plotter.add_text(f"Elapsed time: {(T * i) / T_iter:.2f} s", position='upper_left', font_size=10, color='black')
-    plotter.write_frame()
-plotter.close()
+# setup animation
+fig.update_layout(
+    updatemenus=[dict(type='buttons',
+                      showactive=False,
+                      y=1,
+                      x=0.8,
+                      xanchor='left',
+                      yanchor='bottom',
+                      pad=dict(t=45, r=10),
+                      buttons=[dict(label='Play',
+                                    method='animate',
+                                    args=[None, dict(frame=dict(duration=100, redraw=True),
+                                                     fromcurrent=True,
+                                                     transition=dict(duration=0))])])],
+    scene=dict(zaxis=dict(range=[np.min(U), np.max(U)], autorange=False),
+               xaxis_title='X Axis',
+               yaxis_title='Y Axis',
+               zaxis_title='Amplitude'),
+)
 
-display(Image(filename="wave_animation.gif"))</code></pre>
+# add slider
+sliders = [dict(steps=[dict(method='animate',
+                            args=[[f'frame{k}'],
+                                  dict(mode='immediate',
+                                       frame=dict(duration=100, redraw=True),
+                                       transition=dict(duration=0))],
+                            label=f'{(T * k) / U.shape[1]:.2f} s') for k in range(U.shape[1])],
+                active=0,
+                transition=dict(duration=0),
+                x=0,  # Slider starting position
+                y=0,
+                currentvalue=dict(font=dict(size=12),
+                                  prefix='Time: ',
+                                  visible=True,
+                                  xanchor='center'),
+                len=1.0)]
+
+fig.update_layout(sliders=sliders)
+
+# show figure
+fig.show()</code></pre>
 </div>
 </div>
 <details class="dynamic-py-result dynamic-py-result-plotly" open>

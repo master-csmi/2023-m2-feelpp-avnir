@@ -151,9 +151,6 @@ MathJax.Hub.Config({
     <a class="nav-link" href="index.html">Use Cases</a>
 <ul class="nav-list">
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="fin.html">Thermal Fin</a>
-  </li>
-  <li class="nav-item" data-depth="2">
     <a class="nav-link" href="wave-fd.html">Acoustic Wave FDTD</a>
   </li>
   <li class="nav-item" data-depth="2">
@@ -251,10 +248,10 @@ MathJax.Hub.Config({
 <div class="content">
 \[\begin{cases}
 \begin{align}
-\frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) - \nabla ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) &amp;= s(x,y,t) \quad (x,y) \in \Omega, \quad t \in \times (0,T) \\
-\partial_n u(x,y,t) &amp;= g(x,y,t) \quad (x,y) \in \partial \Omega, \quad t \in \times (0,T) \\
-u(x,y,0) &amp;= u_0(x,y) \quad (x,y) \in \Omega \\
-\partial_t u(x,y,0) &amp;= w_1(x,y) \quad (x,y) \in \Omega
+\frac{1}{\mu(x)} \partial_t^2 u(x,t) - \nabla ( \frac{1}{\rho(x)} \nabla u(x,t) ) &amp;= s(x,t) \quad x \in \Omega, \quad t \in \times (0,T) \\
+\partial_n u(x,t) &amp;= g(x,t) \quad x \in \partial \Omega, \quad t \in \times (0,T) \\
+u(x,0) &amp;= u_0(x) \quad x \in \Omega \\
+\partial_t u(x,0) &amp;= w_0(x) \quad x \in \Omega
 \end{align}
 \end{cases}\]
 </div>
@@ -266,7 +263,7 @@ u(x,y,0) &amp;= u_0(x,y) \quad (x,y) \in \Omega \\
 <div class="ulist">
 <ul>
 <li>
-<p>\(\mu(x,y) = \rho(x,y)*c(x,y)^2\)</p>
+<p>\(\mu(x) = \rho(x)*c(x)^2\)</p>
 </li>
 <li>
 <p>\(\rho\) is the density</p>
@@ -275,7 +272,7 @@ u(x,y,0) &amp;= u_0(x,y) \quad (x,y) \in \Omega \\
 <p>\(c\) is the speed</p>
 </li>
 <li>
-<p>\(\partial_n u(x,y,t)\) where \(n\) is the outward normal vector to the boundary of the domain.</p>
+<p>\(\partial_n u(x,t)\) where \(n\) is the outward normal vector to the boundary of the domain.</p>
 </li>
 <li>
 <p>\(u\) is the function to be determined (that describes the wave)</p>
@@ -305,9 +302,9 @@ u(x,y,0) &amp;= u_0(x,y) \quad (x,y) \in \Omega \\
 <div class="stemblock">
 <div class="content">
 \[\begin{align}
-\int_{\Omega} \frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) v(x,y) \, dx dy - \int_{\Omega} \nabla ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) v(x,y) \, dx dy &amp;= \int_{\Omega} s(x,y,t) v(x,y) \, dx dy \\
-\int_{\Omega} \frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) v(x,y) \, dx dy + \int_{\Omega} \nabla v(x,y) ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) \, dx dy - \int_{\partial \Omega} v(x,y) ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) \cdot n \, ds &amp;= \int_{\Omega} s(x,y,t) v(x,y) \, dx dy \\
-\int_{\Omega} \frac{1}{\mu(x,y)} \partial_t^2 u(x,y,t) v(x,y) \, dx dy + \int_{\Omega} \nabla v(x,y) ( \frac{1}{\rho(x,y)} \nabla u(x,y,t) ) \, dx dy &amp;= \int_{\Omega} s(x,y,t) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,t) v(x,y) \, ds \\
+\int_{\Omega} \frac{1}{\mu(x)} \partial_t^2 u(x,t) v(x) \, dx - \int_{\Omega} \nabla ( \frac{1}{\rho(x)} \nabla u(x,t) ) v(x) \, dx &amp;= \int_{\Omega} s(x,t) v(x) \, dx\\
+\int_{\Omega} \frac{1}{\mu(x)} \partial_t^2 u(x,t) v(x) \, dx + \int_{\Omega} \nabla v(x) ( \frac{1}{\rho(x)} \nabla u(x,t) ) \, dx - \int_{\partial \Omega} v(x) ( \frac{1}{\rho(x)} \nabla u(x,t) ) \cdot n \, ds &amp;= \int_{\Omega} s(x,t) v(x) \, dx \\
+\int_{\Omega} \frac{1}{\mu(x)} \partial_t^2 u(x,t) v(x) \, dx + \int_{\Omega} \nabla v(x) ( \frac{1}{\rho(x)} \nabla u(x,t) ) \, dx &amp;= \int_{\Omega} s(x,t) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,t) v(x) \, ds \\
 a(u,v) &amp;= l(v)
 \end{align}\]
 </div>
@@ -344,8 +341,8 @@ F_{i} &amp;= l(\phi_i)
 <div class="stemblock">
 <div class="content">
 \[\begin{align}
-(u,v)_{\mu} &amp;= \int_{\Omega} \frac{1}{\mu(x,y)} u(x,y,t) v(x,y) \, dx dy \\
-(u,v)_{\rho} &amp;= \int_{\Omega} \frac{1}{\rho(x,y)} u(x,y,t) v(x,y) \, dx dy
+(u,v)_{\mu} &amp;= \int_{\Omega} \frac{1}{\mu(x)} u(x,t) v(x) \, dx \\
+(u,v)_{\rho} &amp;= \int_{\Omega} \frac{1}{\rho(x)} u(x,t) v(x) \, dx
 \end{align}\]
 </div>
 </div>
@@ -354,7 +351,7 @@ F_{i} &amp;= l(\phi_i)
 </div>
 <div class="stemblock">
 <div class="content">
-\[\partial_t^2 (u,v)_{\mu} + (\nabla u, \nabla v)_{\rho} = \int_{\Omega} s(x,y,t) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,t) v(x,y) \, ds\]
+\[\partial_t^2 (u,v)_{\mu} + (\nabla u, \nabla v)_{\rho} = \int_{\Omega} s(x,t) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,t) v(x) \, ds\]
 </div>
 </div>
 </div>
@@ -365,7 +362,7 @@ F_{i} &amp;= l(\phi_i)
 </div>
 <div class="stemblock">
 <div class="content">
-\[\partial_t^2 u(x,y,t) \approx \frac{u(x,y,t+\Delta t) - 2 u(x,y,t) + u(x,y,t-\Delta t)}{\Delta t^2}\]
+\[\partial_t^2 u(x,t) \approx \frac{u(x,t+\Delta t) - 2 u(x,t) + u(x,t-\Delta t)}{\Delta t^2}\]
 </div>
 </div>
 <div class="paragraph">
@@ -373,7 +370,7 @@ F_{i} &amp;= l(\phi_i)
 </div>
 <div class="stemblock">
 <div class="content">
-\[\partial_t^2 u(x,y,t) \approx \frac{U^{n+1} - 2 U^n + U^{n-1}}{\Delta t^2}\]
+\[\partial_t^2 u(x,t) \approx \frac{U^{n+1} - 2 U^n + U^{n-1}}{\Delta t^2}\]
 </div>
 </div>
 <div class="paragraph">
@@ -388,9 +385,9 @@ F_{i} &amp;= l(\phi_i)
 <div class="stemblock">
 <div class="content">
 \[\begin{align}
-u(x,y,0) &amp;= u_0(x,y) \\
-u_1(x,y) &amp;= u(x,y,\Delta t) \approx u_0(x,y) + \Delta t \partial_t u_0(x,y) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x,y) \\
-&amp;= u_0(x,y) + \Delta t w_0(x,y) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x,y)
+u(x,0) &amp;= u_0(x) \\
+u_1(x) &amp;= u(x,\Delta t) \approx u_0(x) + \Delta t \partial_t u_0(x) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x) \\
+&amp;= u_0(x) + \Delta t w_0(x) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x)
 \end{align}\]
 </div>
 </div>
@@ -400,9 +397,9 @@ u_1(x,y) &amp;= u(x,y,\Delta t) \approx u_0(x,y) + \Delta t \partial_t u_0(x,y) 
 <div class="stemblock">
 <div class="content">
 \[\begin{align}
-(\partial_t^2 u_0,v)_\mu + (\nabla u_0, \nabla v)_\rho &amp;= \int_{\Omega} s(x,y,0) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,0) v(x,y) \, ds \\
+(\partial_t^2 u_0,v)_\mu + (\nabla u_0, \nabla v)_\rho &amp;= \int_{\Omega} s(x,0) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,0) v(x) \, ds \\
 (u_1,v)_\mu &amp;= (u_0,v)_\mu + \Delta t (w_0,v)_\mu + \frac{\Delta t^2}{2}(\partial_t^2 u_0,v)_\mu \\
-(u_1,v)_\mu &amp;= (u_0,v)_\mu + \Delta t (w_0,v)_\mu + \frac{\Delta t^2}{2} (\int_{\Omega} s(x,y,0) v(x,y) \, dx dy + \int_{\partial \Omega} \frac{1}{\rho(x,y)} g(x,y,0) v(x,y) \, ds - (\nabla u_0, \nabla v)_\rho ) \\
+(u_1,v)_\mu &amp;= (u_0,v)_\mu + \Delta t (w_0,v)_\mu + \frac{\Delta t^2}{2} (\int_{\Omega} s(x,0) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,0) v(x) \, ds - (\nabla u_0, \nabla v)_\rho ) \\
 a(u_1,v) &amp;= l(v)
 \end{align}\]
 </div>
@@ -468,9 +465,9 @@ w_0(x,y) &amp;= 0
     "Meshes": {
         "wave": {
             "Import": {
-                "filename": "$cfgdir/square.geo",
+                "filename": "$cfgdir/square2d.geo",
                 "partition": 0,
-                "h": 0.01
+                "h": 0.03
             }
         }
     },
@@ -489,7 +486,7 @@ w_0(x,y) &amp;= 0
             "order" : 2,
             "start": 0.0,
             "end": 4,
-            "step": 0.0025
+            "step": 0.0075
         }
     },
     "InitialConditions": {
@@ -521,18 +518,10 @@ w_0(x,y) &amp;= 0
     },
     "Parameters": {
         "wave": {
-            "c": {
-                "expr": 1.0
-            },
-            "rho": {
-                "expr": "1.0"
-            },
-            "mu": {
-                "expr": "1.0"
-            },
-            "s": {
-                "expr": "0.0"
-            }
+            "c": 1.0,
+            "rho": "1.0",
+            "mu": "1.0",
+            "s": "0.0"
         }
     }
 }</code></pre>
@@ -587,15 +576,16 @@ w0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/v
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">Mu = specs_["/Parameters/wave/mu/expr"_json_pointer].get&lt;std::string&gt;();
-Rho = specs_["/Parameters/wave/rho/expr"_json_pointer].get&lt;std::string&gt;();
-S = specs_["/Parameters/wave/s/expr"_json_pointer].get&lt;std::string&gt;();
-G = specs_["/BoundaryConditions/wave/flux/Gamma/expr"_json_pointer].get&lt;std::string&gt;();
-auto mu = expr(Mu);
-auto rho = expr(Rho);
-auto s = expr(S);
-auto g = expr(G);
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">auto Mu = specs_["/Parameters/wave/mu"_json_pointer].get&lt;std::string&gt;();
+auto Rho = specs_["/Parameters/wave/rho"_json_pointer].get&lt;std::string&gt;();
+auto S = specs_["/Parameters/wave/s"_json_pointer].get&lt;std::string&gt;();
+auto G = specs_["/BoundaryConditions/wave/flux/Gamma/expr"_json_pointer].get&lt;std::string&gt;();
+mu = expr(Mu);
+rho = expr(Rho);
+s = expr(S);
+g = expr(G);
 
+// Compute u1_
 a_.zero();
 l_.zero();
 a_ += integrate( _range = elements(mesh_), _expr = 1/mu * idt(u_) * id(v_) );
@@ -618,13 +608,8 @@ bdf_-&gt;shiftRight( u_ );</code></pre>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">template &lt;int Dim, int Order&gt;
-void Laplacian&lt;Dim, Order&gt;::timeLoop()
+void Wave&lt;Dim, Order&gt;::timeLoop()
 {
-    // paramètres
-    auto mu = expr(Mu);
-    auto rho = expr(Rho);
-    auto s = expr(S);
-    auto g = expr(G);
     // time loop
     for ( bdf_-&gt;start(); bdf_-&gt;isFinished()==false; bdf_-&gt;next(u_) )
     {
@@ -655,7 +640,7 @@ void Laplacian&lt;Dim, Order&gt;::timeLoop()
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd build/default/src &amp;&amp;
-./feelpp_2mfs_laplacian --config-file ../../../src/cases/laplacian/onde/onde.cfg</code></pre>
+./feelpp_2mfs_laplacian --config-file ../../../src/cases/wave/square2d/squared2d.cfg</code></pre>
 </div>
 </div>
 <div class="paragraph">
