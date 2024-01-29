@@ -43,7 +43,7 @@
 namespace Feel
 {
 inline const int FEELPP_DIM=2;
-inline const int FEELPP_ORDER=2;
+inline const int FEELPP_ORDER=1;
 
 static inline const bool do_print = true;
 static inline const bool dont_print = false;
@@ -106,7 +106,6 @@ public:
     using space_t = Pchv_type<mesh_t, Order>;
     using space_ptr_t = Pchv_ptrtype<mesh_t, Order>; // Define the type for Pchv_ptrtype
     using element_ = typename space_t::element_type;
-    // using node_type = typename space_t::node_type;
     using form2_type = form2_t<space_t,space_t>; // Define the type for form2
     using form1_type = form1_t<space_t>; // Define the type for form1
     using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>;
@@ -213,33 +212,33 @@ void Elastic<Dim, Order>::initialize()
     auto g = expr<FEELPP_DIM,1>(G);
     auto dtu0 = expr<FEELPP_DIM,1>(DTU0);
     auto u0_ = Xh_->element();
+    u0_.zero();
     std::cout << "**** elasticity parameters initialized **** \n" << std::endl;
 
 
     /////////////////////////////////////////////////////
     //               Initial Condition                 //
     /////////////////////////////////////////////////////
-    // std::cout << "**** Initialize Dirac **** \n" << std::endl;
-    // node_type n(2);
-    // n(0) = 0.1; // coord_x
-    // n(1) = 0.1; // coord_y
-    // // n(2) = 0.1; // coord_z
-    // auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
-    // // auto s = std::make_shared<SensorPointwise<Feel::Pch_type<Feel::Mesh<Feel::Simplex<Dim>>, Order>>>(Xh_, n, "S");
-    // auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
+    std::cout << "**** Initialize Dirac **** \n" << std::endl;
+    node_type n(FEELPP_DIM);
+    for (int i = 0 ; i < FEELPP_DIM ; i++){
+        n(i) = 0.1;
+    }
+    auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+    auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
 
     /////////////////////////////////////////////////
     //         Test using different dirac          //
     /////////////////////////////////////////////////
-    // Initialize the Dirac as a smoothstep
-    std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
-    auto f_0 = form1(_test = Xh_);
-    double diracMagnitude = get_value(specs_, "/Parameters/elastic/dirac_magintude/expr", 0.1);
-    auto dirac = vec(
-        diracMagnitude * expr("smoothstep(x,0.01,0.02):x"),
-        diracMagnitude * expr("smoothstep(y,0.01,0.02):y")  );
-    std::cout << "**** Dirac initialized **** \n" << std::endl;
-    u0_.on(_range=elements(mesh_), _expr=dirac);
+    // // Initialize the Dirac as a smoothstep
+    // std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
+    // auto f_0 = form1(_test = Xh_);
+    // double diracMagnitude = get_value(specs_, "/Parameters/elastic/dirac_magintude/expr", 0.1);
+    // auto dirac = vec(
+    //     diracMagnitude * expr("smoothstep(x,0.01,0.02):x"),
+    //     diracMagnitude * expr("smoothstep(y,0.01,0.02):y"));
+    // std::cout << "**** Dirac initialized **** \n" << std::endl;
+    // u0_.on(_range=elements(mesh_), _expr=dirac);
 
     double rho = 7800.; // kg.m^-3
 
