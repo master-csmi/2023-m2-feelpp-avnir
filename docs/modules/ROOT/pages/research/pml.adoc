@@ -51,9 +51,10 @@ In the frequency domain, the stem:[\texttt{PML}] method consists in analytically
 Following the complex coordinate stretching, we introduce a complex change stem:[\tilde{x}_j] defined by:
 [stem]
 ++++
-\tilde{x}_j = x_j + \frac{i}{\omega} \int_0^{x_j} \tau_j(s) ds
+\begin{align*}
+\tilde{x}_j &= x_j + \frac{i}{\omega} \int_0^{x_j} \tau_j(s) ds
+\end{align*}
 ++++
-(5.10)
 
 where the functions stem:[\tau_j] , ranging from 1 to d, are continuous, positive functions that depend only on stem:[x_j] and are zero in the physical domain (i.e., for negative stem:[x_j] ). In our case, we will further assume that these functions are differentiable and have continuous derivatives (thus zero in the physical domain).
 
@@ -69,7 +70,7 @@ For the implementation of the formulation in the stem:[\texttt{PMLs}], we will p
 . Introduction of new unknowns in order to obtain a system that involves only positive powers of stem:[-i\omega], the goal being to reinterpret the obtained system in the form of temporal partial differential equations.
 . Obtain the system to be solved in stem:[\texttt{PML}] by applying the inverse Fourier time Fourier transform to the system obtained in step 4.
 
-==== Transformation to the Frequency Domain
+==== Step 1: Transformation to the Frequency Domain
 
 Setting aside the initial conditions and the source function located in the physical domain, we proceed with a transformation to the frequency domain. This yields:
 
@@ -89,9 +90,9 @@ Setting aside the initial conditions and the source function located in the phys
 \end{align}
 ++++
 
-where stem:[\hat{p} = \mathcal{F}_p(p)] and stem:[\hat{v} = \mathcal{F}_v(v)], with stem:[\mathcal{F}_p] and stem:[\mathcal{F}_v] representing the Fourier transforms in time.
+where stem:[\hat{p} = \mathcal{F}_t(p)] and stem:[\hat{v} = \mathcal{F}_t(v)], stem:[\mathcal{F}_t] representing the Fourier transforms in time.
 
-==== Equation Extension with a New Coordinate System
+==== Step 2:  Equation Extension with a New Coordinate System
 
 By extending these equations through a new coordinate system, we arrive at:
 
@@ -106,14 +107,14 @@ By extending these equations through a new coordinate system, we arrive at:
 [stem]
 ++++
 \begin{align}
--i\omega \rho \hat{v} &= \tilde{\nabla}\hat{V},
+-i\omega \rho \hat{v} &= \tilde{\nabla}\hat{p},
 \label{eq:3.4}
 \end{align}
 ++++
 
-where stem:[\tilde{\nabla} = \left( \frac{\partial}{\partial \hat{x}_j} \right)^*_{j=1..d}].
+where stem:[\tilde{\nabla} = \left( \frac{\partial}{\partial \tilde{x}_j} \right)^*_{j=1..d}].
 
-==== Transformation and Diagonal Matrix
+==== Step 3: Transformation and Diagonal Matrix
 
 We observe:
 
@@ -146,3 +147,194 @@ The system is then rewritten as:
 ++++
 
 with stem:[\hat{v} = (\hat{v}_k)_{k=1..d}].
+
+==== Step 4: Focusing on the Second Term
+
+We shall now turn our attention to the second term of the second equation. Since stem:[M^{-1}] depends on stem:[(-i\omega + \tau_{x})^{-1}], this equation cannot be reinterpreted as a temporal partial differential equation after applying the inverse Fourier transform stem:[\mathcal{F}^{-1}_t] to the temporal domain. We then introduce stem:[\tilde{v}] such that:
+
+[stem]
+++++
+\begin{align}
+M\tilde{v} &= \hat{v}.
+\label{eq:3.8}
+\end{align}
+++++
+
+stem:[\tilde{v}_k] satisfies:
+
+[stem]
+++++
+\begin{align}
+M_{kk} \tilde{v}_k &= \hat{v}_k.
+\label{eq:3.9}
+\end{align}
+++++
+
+Utilizing the fact that stem:[M_{kk} = 1 + \frac{i\tau_k}{\omega}] and considering that the functions stem:[\tau_k] depend only on stem:[x_k], we derive:
+
+[stem]
+++++
+\begin{align}
+\frac{\partial \hat{v}_k}{\partial x_k} &= M_{kk} \frac{\partial \tilde{v}_k}{\partial x_k} + \frac{dM_{kk}}{dx_k} \tilde{v}_k,
+\label{eq:3.10}
+\end{align}
+++++
+
+which simplifies to:
+
+[stem]
+++++
+\begin{align}
+M_{kk}^{-1} \frac{\partial \hat{v}_k}{\partial x_k} &= \frac{\partial \tilde{v}_k}{\partial x_k} + M_{kk}^{-1} \frac{dM_{kk}}{dx_k} \tilde{v}_k.
+\label{eq:3.11}
+\end{align}
+++++
+
+Rewriting system, we get:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \nabla \cdot \tilde{v} - \sum_{k=1}^{d} M_{kk}^{-1} \frac{dM_{kk}}{dx_k}\tilde{v}_k &= 0,
+\label{eq:3.12}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega M \rho M \tilde{v} &= \nabla \hat{p}.
+\label{eq:3.13}
+\end{align}
+++++
+
+We introduce new vector unknowns:
+
+[stem]
+++++
+\begin{align}
+M \hat{v}^o &= M' \tilde{v},
+\label{eq:3.14}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\hat{v}^* &= \rho M \tilde{v},
+\label{eq:3.15}
+\end{align}
+++++
+
+where stem:[M'] is the diagonal matrix of size stem:[d \times d] with diagonal elements stem:[M'_{kk} = \frac{dM_{kk}}{dx_k}].
+
+Let stem:[T] and stem:[T'] be two stem:[d \times d] diagonal matrices with respective diagonal elements stem:[T_{kk} = \tau_k] and stem:[T'_{kk} = \frac{d\tau_k}{dx_k}]. We establish the equalities:
+
+[stem]
+++++
+\begin{align}
+-i\omega M &= -i\omega I_{dd} + T
+\label{eq:3.16}
+\end{align}
+++++
+
+and
+
+[stem]
+++++
+\begin{align}
+-i\omega M' &= T'.
+\label{eq:3.17}
+\end{align}
+++++
+
+This allows us to reformulate the system as:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu}\hat{p} - \nabla \cdot \tilde{v} - \sum_{k=1}^{d} \hat{v}^o \cdot \overrightarrow{e_k} &= 0,
+\label{eq:3.18}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \hat{v}^* + T \hat{v}^* &= \nabla \hat{p},
+\label{eq:3.19}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \hat{v}^o + T' \hat{v}^o &= T' \tilde{v}
+\label{eq:3.20}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \hat{v}^* &= -i\omega \rho \tilde{v} + \rho T \tilde{v}.
+\label{eq:3.21}
+\end{align}
+++++
+
+where stem:[(\overrightarrow{e_k})_{k=1..d}] is the canonical basis of stem:[\mathbb{R}^d].
+
+==== Step 5: Inverse Fourier Transform
+
+We extend by continuity the equality stem:[\tilde{v} = \hat{v}= \mathcal{F}_t(v)], verified in the physical domain, to all the stem:[\texttt{PML}] and obtain stem:[\mathcal{F}^{-1}(\tilde{v}) = v] in stem:[\Omega \cup \Omega_{PML}]. Let us denote stem:[v^* = \mathcal{F}^{-1}_t(\hat{v}*)] and stem:[v^o = \mathcal{F}^{-1}_t(\hat{v}^o)].
+
+Applying the inverse Fourier transform stem:[\mathcal{F}^{-1}_t] to system , we obtain the system to be solved in the stem:[\texttt{PML}] to which we introduce Dirichlet boundary conditions on stem:[p]:
+
+[stem]
+++++
+\begin{align}
+\frac{1}{\mu} \frac{\partial p}{\partial t} - \nabla \cdot v - \sum_{k=1}^{d} v^o \cdot \overrightarrow{e_k} &= 0 \quad \text{in} \quad \Omega_{PML}, \\
+\frac{\partial v^*}{\partial t} + T v^* &= \nabla p \quad \text{in} \quad \Omega_{PML}, \\
+\frac{\partial v^o}{\partial t} + T' v^o &= T' v^o \quad \text{in} \quad \Omega_{PML}, \\
+\rho \frac{\partial v}{\partial t} + \rho T v &= \frac{\partial v^*}{\partial t} \quad \text{in} \quad \Omega_{PML},\\
+p &= 0 \quad \text{on} \quad \partial\Omega_{PML}.
+\label{eq:3.26}
+\end{align}
+++++
+
+In this formulation, we introduce an additional vector variable, together, these equations define the dynamics of the pressure and velocity fields in PMLs keeping the system of order 1 in time, allowing efficient wave absorption to minimize artificial reflections in numerical simulations.
+
+
+=== Variational Formulation
+
+We now introduce the variational formulation of the system in the stem:[\texttt{PMLs}]. We multiply the first equation by stem:[\phi], the second equation by stem:[\psi^*], the third equation by stem:[\psi^o], and the fourth equation by stem:[\psi] and integrate over the stem:[\texttt{PML}] region stem:[\Omega_{PML}]. With integration by parts and the use of the boundary conditions, we obtain:
+
+Find stem:[(p \in L^2(0,T;H_0^1(\Omega_{PML})))] and stem:[(v,v^*,v^o \in L^2(0,T;L^2([\Omega_{PML}\]^d)))] such that:
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} \frac{1}{\mu} p \phi dx + \int_{\Omega_{PML}} v \cdot \nabla \phi dx + \sum_{k=1}^{d} \int_{\Omega_{PML}} v^o \cdot \overrightarrow{e_k} \phi dx &= 0 \quad \forall \phi \in H_0^1(\Omega_{PML}),
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} v^* \psi^* dx + \int_{\Omega_{PML}} T v^* \psi^* dx &= \int_{\Omega_{PML}} \nabla p \psi^* dx \quad \forall \psi^* \in L^2([\Omega_{PML}]^d),
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} v^o \psi^o dx + \int_{\Omega_{PML}} T' v^o \psi^o dx &= \int_{\Omega_{PML}} T' v^o \psi^o dx \quad \forall \psi^o \in L^2([\Omega_{PML}]^d), 
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} \rho v \psi dx + \int_{\Omega_{PML}} \rho T v \psi dx &= \int_{\Omega_{PML}} \frac{\partial v^*}{\partial t} \psi dx \quad \forall \psi \in L^2([\Omega_{PML}]^d).
+\end{align}
+++++
