@@ -43,7 +43,7 @@
 namespace Feel
 {
 inline const int FEELPP_DIM=2;
-inline const int FEELPP_ORDER=1;
+inline const int FEELPP_ORDER=2;
 
 static inline const bool do_print = true;
 static inline const bool dont_print = false;
@@ -156,7 +156,7 @@ private:
     bdf_ptrtype bdf_;
     exporter_ptrtype e_;
     nl::json meas_;
-    double E, nu, lambda, mu;
+    double E, nu, lambda, mu, rho;
     std::string F, G;
 };
 
@@ -171,15 +171,15 @@ Elastic<Dim, Order>::Elastic(nl::json const& specs) : specs_(specs)
 template <int Dim, int Order>
 void Elastic<Dim, Order>::initialize()
 {
-    double H = specs_["/Meshes/wave/Import/h"_json_pointer].get<double>();
+    double H = specs_["/Meshes/elastic/Import/h"_json_pointer].get<double>();
     // Load mesh and initialize Xh, a, l, etc.
-    mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/wave/Import/filename"_json_pointer].get<std::string>(), _h = H);
+    mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/elastic/Import/filename"_json_pointer].get<std::string>(), _h = H);
     // define Xh on a marked region
-    if ( specs_["/Spaces/wave/Domain"_json_pointer].contains("marker") )
-        Xh_ = Pchv<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/wave/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
+    if ( specs_["/Spaces/elastic/Domain"_json_pointer].contains("marker") )
+        Xh_ = Pchv<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/elastic/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
     // define Xh via a levelset phi where phi < 0 defines the Domain and phi = 0 the boundary
-    else if (specs_["/Spaces/wave/Domain"_json_pointer].contains("levelset"))
-        Xh_ = Pchv<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/wave/Domain/levelset"_json_pointer].get<std::string>())));
+    else if (specs_["/Spaces/elastic/Domain"_json_pointer].contains("levelset"))
+        Xh_ = Pchv<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/elastic/Domain/levelset"_json_pointer].get<std::string>())));
     // define Xh on the whole mesh
     else
         Xh_ = Pchv<Order>(mesh_); // Pchv : vectoriel
@@ -195,14 +195,15 @@ void Elastic<Dim, Order>::initialize()
     bool steady = get_value(specs_, "/TimeStepping/wave/steady", true);
     int time_order = get_value(specs_, "/TimeStepping/wave/order", 2);
     double initial_time = get_value(specs_, "/TimeStepping/wave/start", 0.0);
-    double final_time = get_value(specs_, "/TimeStepping/wave/end", 1.0);
+    double final_time = get_value(specs_, "/TimeStepping/wave/end", 0.3);
     double time_step = get_value(specs_, "/TimeStepping/wave/step", 0.002);
 
     /////////////////////////////////////////////////////
     //  Parameters and Initializations for Elasticity  //
     /////////////////////////////////////////////////////
-    E = get_value(specs_, "/Parameters/elastic/E/expr", 1.0e6); // Young modulus
+    E = get_value(specs_, "/Parameters/elastic/E/expr", 1.0e9); // Young modulus
     nu = get_value(specs_, "/Parameters/elastic/nu/expr", 0.3); // Poisson ratio
+    rho = get_value(specs_, "/Parameters/elastic/rho/expr", 7800.0); // Density in kg.m^-3 (default : steel)
     lambda = E*nu/( (1+nu)*(1-2*nu) );
     mu = E/(2*(1+nu));
     F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
@@ -218,31 +219,29 @@ void Elastic<Dim, Order>::initialize()
     /////////////////////////////////////////////////////
     //               Initial Condition                 //
     /////////////////////////////////////////////////////
-    std::cout << "**** Initialize Dirac **** \n" << std::endl;
-    node_type n(2);
-    n(0) = 0.1; // coord_x
-    n(1) = 0.1; // coord_y
-    // n(2) = 0.1; // coord_z
-    auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
-    // auto s = std::make_shared<SensorPointwise<Feel::Pch_type<Feel::Mesh<Feel::Simplex<Dim>>, Order>>>(Xh_, n, "S");
-    auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
+    // std::cout << "**** Initialize Dirac **** \n" << std::endl;
+    // node_type n(2);
+    // n(0) = 0.1; // coord_x
+    // n(1) = 0.1; // coord_y
+    // // n(2) = 0.1; // coord_z
+    // auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+    // // auto s = std::make_shared<SensorPointwise<Feel::Pch_type<Feel::Mesh<Feel::Simplex<Dim>>, Order>>>(Xh_, n, "S");
+    // auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
 
     /////////////////////////////////////////////////
     //         Test using different dirac          //
     /////////////////////////////////////////////////
-    // // Initialize the Dirac as a smoothstep
-    // std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
-    // auto f_0 = form1(_test = Xh_);
-    // double diracMagnitude = 1.;
-    // auto dirac = vec(
-    //     diracMagnitude * expr("smoothstep(x,0.95,1.05):x"),
-    //     diracMagnitude * expr("smoothstep(y,0.95,1.05):y")  );
-    // std::cout << "**** Dirac initialized **** \n" << std::endl;
-    // std::cout << "**** Initialization of u0 **** \n" << std::endl;
-    // u0_.on(_range=elements(mesh_), _expr=dirac);
-    // f_0 += integrate(_range = elements(mesh_), _expr = inner(dirac,idv(v_)));
+    // Initialize the Dirac as a smoothstep
+    std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
+    auto f_0 = form1(_test = Xh_);
+    double diracMagnitude = get_value(specs_, "/Parameters/elastic/dirac_magintude/expr", 0.1);
+    auto dirac = vec(
+        diracMagnitude * expr("smoothstep(x,0.01,0.02):x"),
+        diracMagnitude * expr("smoothstep(y,0.01,0.02):y")  );
+    std::cout << "**** Dirac initialized **** \n" << std::endl;
+    u0_.on(_range=elements(mesh_), _expr=dirac);
 
-    double rho = 1.0;
+    double rho = 7800.; // kg.m^-3
 
     std::cout << "Dim : " << FEELPP_DIM << std::endl;
     std::cout << "Order : " << FEELPP_ORDER << std::endl;
@@ -250,24 +249,12 @@ void Elastic<Dim, Order>::initialize()
 
     l_.zero();
     a_.zero();
-    std::cout << "**** Compute 1 **** \n" << std::endl;
     a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
-    std::cout << "**** Compute 2 **** \n" << std::endl;
     // f_0 += integrate(_range = elements(mesh_), _expr = time_step * time_step / rho / 2 * id(v_)); // contribution du dirac évalué sur v
-    std::cout << "**** Compute 3 **** \n" << std::endl;
     f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
-    std::cout << "**** Compute 4 **** \n" << std::endl;
     f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
-    std::cout << "**** Compute 5 **** \n" << std::endl;
     f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
-    std::cout << "**** Solve **** \n" << std::endl;
     a_.solve( _rhs = f_0, _solution = u_ );
-    /////////////////////////////////////////////////////
-    //                 CFL Condition                   //
-    /////////////////////////////////////////////////////
-    // adjustments needed below
-    double C = specs_["/Parameters/wave/c/expr"_json_pointer].get<double>();
-    time_step = std::min(time_step, H/C);
 
 
     ////////////////////////////////////////////////////
@@ -321,7 +308,8 @@ void Elastic<Dim, Order>::processMaterials()
 
         auto sigma = Lambda*trace(def)*Id + 2*MU*def;
         a_ += integrate( _range = elements(mesh_), _expr = inner( sigma, grad(v_) ) );
-        a_ += integrate( _range=markedfaces(mesh_,"Gamma"), _expr=-inner(sigma*N(),id(v_)));
+        // a_ += integrate( _range=markedfaces(mesh_,"Gamma"), _expr=-inner(sigma*N(),id(v_)));
+        a_ += integrate( _range=markedfaces(mesh_,"Gamma"), _expr=-inner(expr<FEELPP_DIM,1>(G),id(v_)));
     }
 }
 
@@ -330,20 +318,21 @@ template <int Dim, int Order>
 void Elastic<Dim, Order>::processBoundaryConditions()
 {
     // BC Dirichlet (homogenous if g = 0)
-    if ( specs_["/BoundaryConditions/elastic/Gamma"_json_pointer].contains( "g" ) )
+    if ( specs_["/BoundaryConditions/elastic/Gamma/"_json_pointer].contains( "g" ) )
     {
         for ( auto& [bc, value] : specs_["/BoundaryConditions/elastic/Gamma/g"_json_pointer].items() )
         {
             LOG( INFO ) << fmt::format( "g {}: {}", bc, value.dump() );
             // auto flux = value["expr"].get<std::string>();
 
-            l_ += integrate( _range = markedfaces( support( Xh_ ), bc ),
-                    _expr = inner( expr<FEELPP_DIM,1>( G ), id( v_ )) );
+            // l_ += integrate( _range = markedfaces( support( Xh_ ), bc ),
+            //         _expr = inner( expr<FEELPP_DIM,1>( G ), id( v_ )) );
+            a_+=on(_range=markedfaces(mesh_,"Gamma"), _rhs=l_, _element=u_, _expr=expr<FEELPP_DIM,1>( G ) );
         }
     }
 
     // BC Neuman (Pure Traction Problem)
-    if ( specs_["/BoundaryConditions/elsatic/Gamma"_json_pointer].contains( "pure_traction" ) )
+    if ( specs_["/BoundaryConditions/elastic/Gamma"_json_pointer].contains( "pure_traction" ) )
     {
         for ( auto& [bc, value] : specs_["/BoundaryConditions/elsatic/Gamma/pure_traction/g"_json_pointer].items() )
         {
