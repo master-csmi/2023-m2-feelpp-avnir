@@ -125,12 +125,12 @@ In order to ensure stability of the scheme, we need to ensure that the CFL condi
 [stem]
 ++++
 \begin{align}
-C_{CFL} \frac{\Delta t}{h} &\leq 1 \\
-\Delta t &\leq \frac{h}{C_{CFL}}
+c \frac{\Delta t}{h} &\leq CFL \\
+\Delta t &\leq CFL \frac{h}{c}
 \end{align}
 ++++
 
-where stem:[C_{CFL}] is the max of stem:[c], the speed as stated before.
+where stem:[CFL] is a number that can be found in the literature and stem:[c] is the maximum speed of the wave. In our case, we chose stem:[CFL = 1.0].
 
 == Implementation
 
