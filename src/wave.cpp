@@ -22,7 +22,7 @@
 //! @copyright 2023 Feel++ Consortium
 //! @copyright 2023 Université de Strasbourg
 //!
-#include "laplacian.hpp"
+#include "wave.hpp"
 
 int main(int argc, char** argv)
 {
@@ -32,18 +32,18 @@ int main(int argc, char** argv)
     {
         Environment env(_argc = argc, _argv = argv,
                         _desc = makeOptions(),
-                        _about = about(_name = fmt::format("laplacian-{}dp{}", FEELPP_DIM, FEELPP_ORDER),
+                        _about = about(_name = fmt::format("wave-{}dp{}", FEELPP_DIM, FEELPP_ORDER),
                                        _author = "Feel++ Consortium",
                                        _email = "feelpp@cemosis.fr"));
         auto jsonfile = removeComments(readFromFile(Environment::expand(soption("specs"))));
         std::istringstream istr(jsonfile);
         json specs = json::parse(istr);
 
-        // Create an instance of the Laplacian class
-        Laplacian<FEELPP_DIM, FEELPP_ORDER> laplacian(specs);
+        // Create an instance of the Wave class
+        Wave<FEELPP_DIM, FEELPP_ORDER> wave(specs);
 
-        // Call the run method on the Laplacian instance
-        laplacian.run();
+        // Call the run method on the wave instance
+        wave.run();
     }
     catch (...)
     {
