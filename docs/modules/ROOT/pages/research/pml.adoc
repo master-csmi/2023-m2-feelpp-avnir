@@ -69,5 +69,80 @@ For the implementation of the formulation in the stem:[\texttt{PMLs}], we will p
 . Introduction of new unknowns in order to obtain a system that involves only positive powers of stem:[-i\omega], the goal being to reinterpret the obtained system in the form of temporal partial differential equations.
 . Obtain the system to be solved in stem:[\texttt{PML}] by applying the inverse Fourier time Fourier transform to the system obtained in step 4.
 
-[qanda]
-Step 1::
+==== Transformation to the Frequency Domain
+
+Setting aside the initial conditions and the source function located in the physical domain, we proceed with a transformation to the frequency domain. This yields:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \nabla \cdot \hat{v} &= 0,
+\label{eq:3.1}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \rho \hat{v} - \nabla \hat{p} &= 0
+\label{eq:3.2}
+\end{align}
+++++
+
+where stem:[\hat{p} = \mathcal{F}_p(p)] and stem:[\hat{v} = \mathcal{F}_v(v)], with stem:[\mathcal{F}_p] and stem:[\mathcal{F}_v] representing the Fourier transforms in time.
+
+==== Equation Extension with a New Coordinate System
+
+By extending these equations through a new coordinate system, we arrive at:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \tilde{\nabla} \cdot \hat{v} &= 0,
+\label{eq:3.3}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \rho \hat{v} &= \tilde{\nabla}\hat{V},
+\label{eq:3.4}
+\end{align}
+++++
+
+where stem:[\tilde{\nabla} = \left( \frac{\partial}{\partial \hat{x}_j} \right)^*_{j=1..d}].
+
+==== Transformation and Diagonal Matrix
+
+We observe:
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial \tilde{x}_j} &= \frac{i\omega}{i\omega - \tau_j} \frac{\partial}{\partial x_j}, \quad \forall j = 1..d.
+\label{eq:3.5}
+\end{align}
+++++
+
+As a result, stem:[\nabla] and stem:[\tilde{\nabla}] satisfy stem:[\nabla = M \tilde{\nabla}] where stem:[M] is a stem:[d \times d] diagonal matrix with diagonal elements stem:[M_{jj} = 1 + \frac{i\tau_j}{\omega}].
+
+The system is then rewritten as:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \sum_{k=1}^{d} M_{kk}^{-1} \frac{\partial \hat{v}_k}{\partial x_k} &= 0,
+\label{eq:3.6}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega M \rho \hat{v} &= \nabla \hat{p},
+\label{eq:3.7}
+\end{align}
+++++
+
+with stem:[\hat{v} = (\hat{v}_k)_{k=1..d}].
