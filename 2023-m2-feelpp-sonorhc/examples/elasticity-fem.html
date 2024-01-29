@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Solving linear elasticity using finite element method :: 2023 M2 Feelpp Sonorhc</title>
+    <link rel="canonical" href="https://feelpp.github.io/2023-m2-feelpp-sonorhc/2023-m2-feelpp-sonorhc/examples/elasticity-fem.html">
+    <meta name="description" content="We simulate the wave equation using the finite element method">
+    <meta name="generator" content="Antora 3.1.4">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" href="../../_/img/favicon.ico" type="image/x-icon">
+<script>!function(l,p){if(l.protocol!==p&&l.host=="docs.antora.org"){l.protocol=p}else if(/\.gitlab\.io$/.test(l.host)){l.replace(p+"//docs.antora.org"+l.pathname.substr(l.pathname.indexOf("/",1))+l.search+l.hash)}}(location,"https:")</script>
+
+<script src="../../_/js/vendor/tabs-block-extension.js"></script>
+<script src="../../_/js/vendor/tabs-block-behavior.js"></script>
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+
+  TeX: {
+      Macros: {
+      bold: ["{\\bf #1}",1],
+      calTh: "{\\mathcal{T}_h}",
+      card: ["{\\operatorname{card}(#1)}",1],
+      card: ["{\\operatorname{card}(#1)}",1],
+      Ck: ["{\\mathcal{C}^{#1}}",1],
+      deformt: ["{\\mathbf{\\varepsilon(#1)}}",1],
+      diam: "{\\operatorname{diam}}",
+      dim: ["{\\operatorname{dim}(#1)}",1],
+      disp: ["{\\mathbf{#1}}",1],
+      domain: "{\\Omega}",
+      ds: "",
+      essinf: "{\\operatorname{ess}\\, \\operatorname{inf}}",
+      F:"{\\mathcal{F}}",
+      geo: "{\\mathrm{geo}}",
+      Ich: ["{\\mathcal{I}^{#1}_{c,h}#2}",2],
+      Id: "{\\mathcal{I}}",
+      Ilag: ["{\\mathcal{I}^{\\mathrm{lag}}_{#1}}",1],
+      jump: ["{[\\![ #1 ]\\!]}",1],
+      n:"{\\mathbf{n}}",
+      Ne: "{N_{\\mathrm{e}}}",
+      Next: "{\\mathrm{n}}",
+      nf: "{n_f}",
+      ngeo: "{n_{\\mathrm{geo}}}",
+      Nma: "{N_{\\mathrm{ma}}}",
+      NN: "{\\mathbb N}",
+      Nno: "{N_{\\mathrm{no}}}",
+      Nso: "{N_{\\mathrm{so}}}",
+      opdim: "{\\operatorname{dim}}",
+      p: "{\\mathrm{p}}",
+      P:"{\\mathcal{P}}",
+      Pch: ["{P^{#1}_{c,h}}",1],
+      Pcho: ["{P^{#1}_{c,h,0}}",1],
+      Pk: ["{\\mathcal{P}^{#1}}",1],
+      poly: ["{\\mathbb{#1}",1],
+      poly: ["{\\mathbb{#1}}",1],
+      prect: ["{\\left\\(#1\\right\\)}",1],
+      q:"{\\mathbf{q}}",
+      Qch: ["{Q^{#1}_{c,h}}",1],
+      Qk: ["{\\mathcal{Q}^{#1}}",1],
+      R: ["{\\mathbb{R}^{#1}}",1],
+      RR: "{\\mathbb R}",
+      set: ["{\\left\\{#1\\right\\}}",1],
+      stresst: ["{\\mathbf{\\sigma(#1)}}",1],
+      T:"{\\mathcal{T}}",
+      tr: "{\\operatorname{tr}}",
+      v:"{\\mathbf{v}}",
+      vertiii: ["\\left\\vert\\kern-0.25ex\\left\\vert\\kern-0.25ex\\left\\vert #1 \\right\\vert\\kern-0.25ex\\right\\vert\\kern-0.25ex\\right\\vert",1]
+  },
+  extensions: ["mhchem.js"] 
+  }
+});
+</script>
+<!--<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-MML-AM_CHTML"></script>-->
+<!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML' async></script> -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML'></script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.6.0/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>-->
+
+<!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css" integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.js" integrity="sha384-jmxIlussZWB7qCuB+PgKG1uLjjxbVVIayPJwi6cG6Zb4YKq0JIw+OMnkkEC7kYCq" crossorigin="anonymous"></script>-->
+<script>var uiRootPath = '../../_'</script>
+
+  </head>
+  <body class="article">
+<header class="header">
+    <nav class="navbar navbar-expand-sm bg-dark navbar-dark navbar-template-project" style="border-top: 4px solid #9E9E9E">
+        <div class="navbar-brand">
+            <div class="navbar-item feelpp-logo">
+                <a href="https://feelpp.github.io/2023-m2-feelpp-sonorhc">2023 M2 Feelpp Sonorhc</a>
+            </div>
+            <button class="navbar-burger" data-target="topbar-nav">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+
+        <div id="topbar-nav" class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <a href="https://docs.feelpp.org/">Documentation Reference</a>
+                </div>
+                <div class="navbar-item has-dropdown is-hoverable download-item">
+                    <div class="navbar-item"><a href="https://docs.feelpp.org/user/latest/install/index.html" class="download-btn">Get Feel++</a></div>
+                </div>
+                <div class="navbar-item">
+                    <a class="navbar-brand"  href="https://www.cemosis.fr">
+                        <img class="cemosis-logo"  src="../../_/img/cemosis-logo.svg" alt="Cemosis logo"/>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+<div class="body">
+<a href="#" class="menu-expand-toggle"></a>
+<div class="nav-container" data-component="2023-m2-feelpp-sonorhc" data-version="">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">Template Project</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Introduction</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../quickstart.html">Quickstart</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../overview.html">Overview</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use Cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="wave-fd.html">Acoustic Wave FDTD</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="wave-cfpde.html">Acoustic Wave CFPDES</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="wave-fem.html">Acoustic Wave FEM</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="elasticity-fem.html">Elasticity FEM</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Setting up the development Environment</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/cmake.html">CMake Environment</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/antora.html">Antora Environment</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/vscode.html">VS Code Integration</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/githubactions.html">GitHub Actions</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/rename.html">Renaming the Project</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/jupyter.html">Jupyter Notebook</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Template Project</span>
+    <span class="version"></span>
+  </div>
+  <ul class="components">
+      <li class="component is-current">
+        <a class="title" href="../index.html">Template Project</a>
+      </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+  <button class="nav-toggle"></button>
+    <a href="../index.html" class="home-link"></a>
+  <nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Template Project</a></li>
+    <li><a href="index.html">Use Cases</a></li>
+    <li><a href="elasticity-fem.html">Elasticity FEM</a></li>
+  </ul>
+</nav>
+
+  
+    <div class="edit-this-page"><a href="https://github.com/master-csmi/2023-m2-feelpp-sonorhc/edit/master/docs/modules/ROOT/pages/examples/elasticity-fem.adoc">Edit this Page</a></div>
+  
+  <div class="page-downloads">
+  <span class="label">Download as</span>
+  <ul class="download-options">
+    <li>
+      <a onclick="print(this)" href="#" data-toggle="tooltip" data-placement="left" title="Print to PDF"
+         class="pdf-download">
+        <img class="pdf-file-icon icon" src="../../_/img/pdf.svg"/> .pdf
+      </a>
+    </li>
+  </ul>
+</div>
+</div>
+
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Solving linear elasticity using finite element method</h1>
+<div class="sect1">
+<h2 id="_mathematical_framework"><a class="anchor" href="#_mathematical_framework"></a>1. Mathematical framework</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In this section, we aim to solve the linear elasticity problem using the finite element method. We will first consider an isotropic medium and a homogeneous domain (which suits the test-case). This means determining the displacement field \(u\) induced by the external force \(f\) applied onto the deformable medium. The domain \(\Omega \subset \mathbb{R}^3\), initially at rest, is the following:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/test_case_metal_plate.png" alt="test case metal plate" width="600px">
+</div>
+</div>
+<div class="paragraph">
+<p>It is a rectangular steel plate with holes along the edges. The points F1, F2 and F3 are the ones where the force will be applied: a hammer will hit the plate at these points, which will be represented in our numerical model as a dirac source term (its intensity was determined thanks to a physical experiment).</p>
+</div>
+<div class="paragraph">
+<p>First of all, we will consider the case of a homogeneous medium, which will further be extended to the case of an heterogeneous medium (nuclear vessel), where the material properties will vary in the domain.</p>
+</div>
+<div class="paragraph">
+<p>Let us define the following quantities:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>\(\Omega \subset \mathbb{R}^3\) the domain of the problem</p>
+</li>
+<li>
+<p>\(\Gamma = \partial \Omega\) the boundary of the domain</p>
+</li>
+<li>
+<p>\(\sigma\) the stress field (constraints tensor)</p>
+</li>
+<li>
+<p>\(\varepsilon(u) = \frac{1}{2}(\nabla u + \nabla u^T)\) the linearized deformation field</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In the case of static linear elasticity, we can define the equilibrium condition as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+\nabla \cdot \sigma + f = 0 \quad \text{in } \Omega
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(f\) is the external force applied onto the deformable medium. In order to extend this condition to the dynamic case, we can use the Newton&#8217;s second law of motion:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \rho \frac{\partial^2}{\partial t^2} u = \nabla \cdot \sigma + f \quad \text{in} \ \Omega
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(\rho\) is the mass density of the medium and \(\frac{\partial^2}{\partial_{t^2}} u\) denotes the acceleration, in this case the second derivative with respect to time of the displacement field \(u\), which will from now on be denoted by \(u_{tt}\). This equation can be rewritten as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \rho u_{tt} - \nabla \cdot \sigma = f \quad \text{in} \ \Omega
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>In the case of linear elasticity, we can define the stress field as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align*}
+    \sigma &amp;= \lambda \nabla \cdot u I + 2 \mu \varepsilon(u) \\
+    &amp;= \lambda (\nabla \cdot u) I + \mu (\nabla u + \nabla u^T)
+\end{align*}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(\lambda\) and \(\mu\) are the Lamé coefficients, which are material properties of the medium. Since we are considering an homogeneous medium at first, we can safely assume that these coefficients are constant in the domain.</p>
+</div>
+<div class="paragraph">
+<p>Finally, we can rewrite our problem in the case of dynamic linear elasticity as follows:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{cases}
+\begin{align}
+    \rho u_{tt} - \nabla \cdot \sigma &amp;= f \quad \text{in} \ \Omega \\
+    \sigma &amp;= \lambda (\nabla \cdot u) I + \mu (\nabla u + \nabla u^T) \\
+    \sigma \cdot n &amp;= g \quad \text{on} \ \Gamma \\
+    u(x, 0) &amp;= 0 \quad \text{in} \ \Omega \\
+    u_t(x, 0) &amp;= 0 \quad \text{in} \ \Omega
+\end{align}
+\end{cases}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(n\) is the outward unit normal vector to the boundary \(\Gamma\).</p>
+</div>
+<div class="sect2">
+<h3 id="_weak_formulation"><a class="anchor" href="#_weak_formulation"></a>1.1. Weak formulation</h3>
+<div class="paragraph">
+<p>In order to solve this problem using the finite element method, we need to define the weak formulation of the first equation, which will then be handled by the finite element library FEEL++. Given the equation, we want to define a bilinear form \(a(u, v)\) and a linear form \(l(v)\) such that:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    a(u, v) = l(v) \quad \forall v \in V
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(V\) is a suitable function space. In order to do so, we can multiply the equation by a test function \(v \in V\), integrate over the domain and apply the divergence theorem (in the case of a Riemannian manifold with boundary):</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    \int_{\Omega} \rho u_{tt} \cdot v \, dx - \int_{\Omega} \nabla \cdot \sigma \cdot v \, dx &amp;= \int_{\Omega} f \cdot v \, dx \\
+    \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \nabla v \, dx - \int_{\Gamma} \sigma \cdot n \cdot v \, ds &amp;= \int_{\Omega} f \cdot v \, dx \\
+    \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \varepsilon(v) \, dx &amp;= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} g \cdot v \, ds
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(\sigma : \varepsilon (v)\) denotes the maximal contraction of the tensors \(\sigma\) and \(\varepsilon(v)\), equal to \(\sum_{i, j} \sigma_{ij} \varepsilon(v)_{ij}\). Proof:</p>
+</div>
+<div class="paragraph">
+<p>Let us consider the 2D case (3D can be proven in the same manner). We start by defining:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+ u &amp;= \begin{pmatrix} u_1 \\ u_2 \end{pmatrix} \\
+ \nabla \cdot u &amp;= u_{1i} + u_{2j} \\
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>We denote by \(u_{1i}\) the partial derivative of \(u_1\) with respect to the \(i\)th variable. We can then rewrite the maximal contraction as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+\sigma(\mathbf{u}) : \nabla \mathbf{v} &amp;= \left( (\lambda + 2 \mu)u_{1i} + \lambda u_{2j} \right)v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) v_{1j}\\
+&amp;+ \left( \mu (u_{1j} + u_{2i}) \right) v_{2i} + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+\sigma(\mathbf{u}) : \varepsilon(\mathbf{v}) &amp;= \left( (\lambda + 2 \mu ) u_{1i} + \lambda u_{2j} \right) v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) \cdot \frac{1}{2}(v_{1j} + v_{2i}) \\
+&amp;+ \left( \mu (u_{1j} + u_{2i}) \right) \cdot \frac{1}{2}(v_{1j} + v_{2i}) + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+&amp;=  \left( (\lambda + 2 \mu)u_{1i} + \lambda u_{2j} \right)v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) v_{1j}\\
+&amp;+ \left( \mu (u_{1j} + u_{2i}) \right) v_{2i} + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+\sigma(\mathbf{u}) : \nabla \mathbf{v} &amp;= \sigma(\mathbf{u}) : \varepsilon(\mathbf{v})
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>In order to be able to solve for \(u\), we need to define \(a(u,v)\) and \(l(v)\) as respectively a bilinear and a linear form. Therefore, we will rewrite the last equation as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+\sigma(\mathbf{u}) : \varepsilon(\mathbf{v}) &amp;= \lambda(\nabla \mathbf{u})I : \varepsilon(\mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v}) \\
+&amp;= \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v})
+\end{align}\]
+</div>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    a(u, v) &amp;= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \varepsilon(v) \, dx \\
+    a(u, v) &amp;= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v}) \, dx \\
+    l(v) &amp;= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} g \cdot v \, ds
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Which gives us the bilinear and linear forms we were looking for. We can now solve for \(u\) using the finite element method.</p>
+</div>
+<div class="paragraph">
+<p>But we wan&#8217;t to adapt it and approximate the second order derivative of the displacement field \(u_{tt}\) by a second order centered finite difference scheme:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    u_{tt} \approx \frac{u_{n+1} - 2 u_n + u_{n-1}}{\Delta t^2}
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where \(u_n\) denotes the displacement field at the time \(t = n \Delta t\).</p>
+</div>
+<div class="sect3">
+<h4 id="_initial_conditions"><a class="anchor" href="#_initial_conditions"></a>1.1.1. Initial conditions</h4>
+<div class="paragraph">
+<p>In order to compute the initial displacement fields \(u^0\) and \(u^1\), we can use the following second order Taylor expansion:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    u_1 &amp;= u_0 + \Delta t \partial_t u_0 + \frac{\Delta t^2}{2} \partial_t^2 u_0 + \mathcal{O}(\Delta t^3) \\
+    \int_\Omega u_1 \cdot v \, dx &amp;= \int_\Omega u_0 \cdot v \, dx + \Delta t \int_\Omega \partial_t u_0 \cdot v \, dx + \frac{\Delta t^2}{2} \int_\Omega \partial_t^2 u_0 \cdot v \, dx + \mathcal{O}(\Delta t^3) \\
+    &amp;= \frac{\Delta t^2}{2} \int_\Omega \partial_t^2 u_0 \cdot v \, dx + \mathcal{O}(\Delta t^3)
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Since the initial displacement field \(u_0\) and the initial velocity field \(\partial_t u_0\) are both equal to zero. Finally, we can solve for \(u_1\) since we know that \(u_0\) has to be the solution of:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \partial_t^2 u_0 - \nabla \cdot \sigma = f_0 \quad \text{in} \ \Omega
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Where \(f_0\) represents the intial external force applied onto the medium (in our case defined by the dirac source term). We can then define the initial displacement field \(u_0\) as the solution of the following problem:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx - \int_\Omega \nabla \cdot \sigma(u_0) \cdot v \, dx &amp;= \int_\Omega f_0 \cdot v \, dx \\
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx + \int_\Omega \sigma(u_0) : \nabla v \, dx - \int_\Gamma \sigma(u_0) \cdot n \cdot v \, ds &amp;= \int_\Omega f_0 \cdot v \, dx \\
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx + \int_\Omega \sigma(u_0) : \varepsilon(v) \, dx &amp;= \int_\Omega f_0 \cdot v \, dx + \int_\Gamma g_0 \cdot v \, ds
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Which gives us the following expression for \(\partial_t^2 u^0\):</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &amp;= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \sigma(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \\
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &amp;= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\varepsilon(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>We can then define the initial displacement field \(u^1\) as the solution of the following problem:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    \int_\Omega u_1 \cdot v \, dx &amp;= \frac{\Delta t^2}{2 \rho} \int_\Omega \partial_t^2 u_0 \cdot v \, dx \\
+    &amp;= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\varepsilon(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \right) \\
+    &amp;= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \mathbf{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx + \int_\Gamma g_0 \cdot v \, ds \right)
+\end{align}\]
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_time_discretization_loop"><a class="anchor" href="#_time_discretization_loop"></a>1.1.2. Time discretization / loop</h4>
+<div class="paragraph">
+<p>We can adapt the weak formulation to the time discretization scheme we want to use. In our case, we will use the centered finite difference scheme of order 2, which means that we will have to solve the following problem at each time step:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    \int_\Omega \frac{u_{n+1} - 2 u_n + u_{n-1}}{\Delta t^2} \cdot v \, dx + \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx - \int_\Gamma g \cdot v \, ds &amp;= \int_\Omega f_n \cdot v \, dx
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>But we want to solve for \(u^{n+1}\), meaning we have to rewrite the equation as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    \int_\Omega u_{n+1} \cdot v \, dx &amp;= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx + \int_\Gamma \sigma(u_n) \cdot n \cdot v \, ds \right) \\
+    &amp;+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx \\
+    \int_\Omega u_{n+1} \cdot v \, dx &amp;= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu\varepsilon(u_n) : \varepsilon(v) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
+    &amp;+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>But we can simplify the equation by rewriting the maximal contraction. Let \(\varepsilon(u_n)\) and \(\varepsilon(v)\) be two \(3 \times 3\) real matrices, with elements \(\varepsilon(u_n)_{ij}\) and \(epsilon(v)_{ij}\) respectively. The maximal contraction (double dot product) of \(\sigma\) and \(\varepsilon\) is defined as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \varepsilon(u_n) : \varepsilon(v) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ij}
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>To express this using matrix operations, consider the trace of the product of \(\varepsilon(u_n)\) and \(\varepsilon(v)^T\) (the transpose of \(\varepsilon(v)\)):</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} (\varepsilon(u_n) \varepsilon(v)^T)_{ii}
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>The element \((\varepsilon(u_n) \varepsilon(v)^T)_{ii}\) is the dot product of the $i$th row of \(\varepsilon(u_n)\) and the $i$th row of $\varepsilon(v)^T$. This is equivalent to the sum of the products of corresponding elements in the $i$th row of \(\varepsilon(u_n)\) and the \(i\)th column of \(\varepsilon(v)\):</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    (\varepsilon(u_n) \varepsilon(v)^T)_{ii} = \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ji}
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Therefore, the trace is:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ji}
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Since \(\varepsilon(v)^T\) has \(\varepsilon(v)_{ji}\) as its \((i, j)\)-element, the expression becomes:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ij} = \varepsilon(u_n) : \varepsilon(v)
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Thus, we have shown that:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{equation}
+    \varepsilon(u_n) : \varepsilon(v) = \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T)
+\end{equation}\]
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, we can rewrite the equation as:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+    \int_\Omega u_{n+1} \cdot v \, dx &amp;= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
+    &amp;+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx
+\end{align}\]
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_implementation_using_feel"><a class="anchor" href="#_implementation_using_feel"></a>2. Implementation using Feel++</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now that the mathematical framework has been defined, we can implement the problem using the finite element library Feel++.
+First, we will initialize our environment using vectorial spaces:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">using mesh_t = Mesh&lt;Simplex&lt;Dim&gt;&gt;;
+using space_t = Pchv_type&lt;mesh_t, Order&gt;;
+using space_ptr_t = Pchv_ptrtype&lt;mesh_t, Order&gt;;
+using element_ = typename space_t::element_type;
+using form2_type = form2_t&lt;space_t,space_t&gt;;
+using form1_type = form1_t&lt;space_t&gt;;
+using bdf_ptrtype = std::shared_ptr&lt;Bdf&lt;space_t&gt;&gt;;
+using exporter_ptrtype = std::shared_ptr&lt;Exporter&lt;mesh_t&gt;&gt;;</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_initial_conditions_2"><a class="anchor" href="#_initial_conditions_2"></a>2.1. Initial conditions</h3>
+<div class="paragraph">
+<p>Then, we will start be computing our initial displacement fields \(u_0\) and \(u_1\) using the following code:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">E = get_value(specs_, "/Parameters/elastic/E/expr", 1.0e9); // Young modulus
+nu = get_value(specs_, "/Parameters/elastic/nu/expr", 0.3); // Poisson ratio
+rho = get_value(specs_, "/Parameters/elastic/rho/expr", 7800.0); // Density in kg.m^-3 (default : steel)
+lambda = E*nu/( (1+nu)*(1-2*nu) );
+mu = E/(2*(1+nu));
+F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get&lt;std::string&gt;();
+G = specs_["/BoundaryConditions/elastic/Gamma/g/expr"_json_pointer].get&lt;std::string&gt;();
+std::string DTU0 = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get&lt;std::string&gt;();
+auto f = expr&lt;FEELPP_DIM,1&gt;(F);
+auto g = expr&lt;FEELPP_DIM,1&gt;(G);
+auto dtu0 = expr&lt;FEELPP_DIM,1&gt;(DTU0);
+auto u0_ = Xh_-&gt;element();
+
+node_type n(FEELPP_DIM);
+for (int i = 0 ; i &lt; FEELPP_DIM ; i++){
+    n(i) = 0.1;
+}
+auto s = std::make_shared&lt;SensorPointwise&lt;space_t&gt;&gt;(Xh_, n, "S");
+auto f_0 = form1( _test = Xh_, _vector = s-&gt;containerPtr() );
+
+double rho = 7800.; // kg.m^-3
+
+l_.zero();
+a_.zero();
+a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
+f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
+f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
+f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
+a_.solve( _rhs = f_0, _solution = u_ );
+
+bdf_ = Feel::bdf( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
+bdf_-&gt;start();
+if ( steady )
+    bdf_-&gt;setSteady();
+bdf_-&gt;initialize( u0_ ); // set u0_
+bdf_-&gt;shiftRight( u_ ); // set u1_</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The contribution of the dirac is directly embeded in the linear form \(f_0\) and will be used in order to compute \(u_1\).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_time_discretization_loop_2"><a class="anchor" href="#_time_discretization_loop_2"></a>2.2. Time discretization / loop</h3>
+<div class="paragraph">
+<p>We will compute the displacement field \(u_{n+1}\) at each time step using the following code:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">auto un = bdf_-&gt;unknown(0); // un = u_n
+auto un_1 = bdf_-&gt;unknown(1);  // un_1 = u_{n-1}
+
+auto dt = expr(bdf_-&gt;timeStep());
+
+at_ += integrate( _range = elements(mesh_), _expr = trans(idt(u_))*id(v_) );
+
+lt_ += integrate( _range = elements(mesh_), _expr = dt*dt/rho * inner(f,id(v_))); //1
+lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * lambda * inner(gradv(un),grad(v_))); //2
+lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * 2 * mu * trace(sym(gradv(un)) * trans(sym(grad(v_)) ))); //3
+lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = dt*dt/rho * inner(g, id(v_))); //4
+lt_ += integrate( _range = elements(mesh_), _expr = 2*inner(id(un),id(v_)) - inner(id(un_1),id(v_))); //5
+
+at_.solve( _rhs = lt_, _solution = u_ );
+
+this-&gt;exportResults();
+
+at_.zero();
+lt_.zero();</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_execution"><a class="anchor" href="#_execution"></a>2.3. Execution</h3>
+<div class="paragraph">
+<p>One can execute the code using the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd build/default/src &amp;&amp;
+./feelpp_fs_elasticity --config-file ../../../src/cases/elastic/elastic.cfg</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The results are automatically exported to the feelpp database, it&#8217;s location is given at the end of the execution in the
+terminal.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_results"><a class="anchor" href="#_results"></a>2.4. Results</h3>
+<div class="paragraph">
+<p>The results are stored as an ensight format, which can be visualized using Paraview. Since the results are displacement fields, we can either visualize them using the 'Glyph' or the 'Warp by vector' filter (which can retrieved in the menu unde 'Filter' &gt; 'Alphabetical' &gt; 'Glyph' or 'Warp by vector').</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_testcase"><a class="anchor" href="#_testcase"></a>2.5. Testcase</h3>
+<div class="paragraph">
+<p>The first test was done on the same square.geo file that was used for the acoustic wave equation, a 2D representation of a square of size 2.</p>
+</div>
+<div class="paragraph">
+<p>The second one was to study the correctness of the code by comparing the numerical results with measurements taken during a physical experiment. The experiment consisted in hitting a steel plate with a hammer at three different points (F1, F2 and F3), and measuring the time it took for the disturbance / wave to reach points 1 and 2. Here is the setup of the experiment:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/choc_plaque.png" alt="choc plaque" width="600px">
+</div>
+</div>
+<div class="paragraph">
+<p>The template was given in a .step format, which had to be converted to a .geo file to adapt to feelpp&#8217;s restrictions. The final model is the following:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/plaque_geo.png" alt="plaque geo" width="600px">
+</div>
+</div>
+<div class="paragraph">
+<p>The boundary had to consider the holes in the plate, which were modeled as cylinders, and could therefore be properly meshed:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/plaque_trous.png" alt="plaque trous" width="600px">
+</div>
+</div>
+<div class="paragraph">
+<p>The boundary of the domain (Gamma) was also created alongside of two groups, Dirac and PointsOfInterests,
+respectively corresponding to the points where the force is applied and the points where the measurements are taken. Their repartition is visible on the following image:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/plaque_points.png" alt="plaque points" width="600px">
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer" style="border-top: 2px solid #e9e9e9; background-color: #fafafa; padding-bottom: 2em; padding-top: 2em;">
+    <div class="container" style="display: flex; flex-direction: column; align-items: center; gap: 0.5em;">
+        <div>
+            <a href="https://www.cemosis.fr">
+                <img src="../../_/img/cemosis-logo.svg" alt="Cemosis logo" height="50">
+            </a>
+        </div>
+        <span style="font-size: 0.8rem; color: #9e9e9e">© 2024 <a href="https://www.cemosis.fr" style="text-decoration: underline;">Cemosis</a>, Université de Strasbourg</span>
+    </div>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+
+
+<script async src="../../_/js/vendor/fontawesome-icon-defs.js"></script>
+<script async src="../../_/js/vendor/fontawesome.js"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+
+
+<script type="text/javascript">
+function toggleFullScreen() {
+   var doc = window.document;
+   var docEl = doc.documentElement;
+
+   var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+   var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+   if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+       requestFullScreen.call(docEl);
+   }
+   else {
+       cancelFullScreen.call(doc);
+   }
+}
+</script>
+  </body>
+</html>
