@@ -338,3 +338,8 @@ Find stem:[(p \in L^2(0,T;H_0^1(\Omega_{PML})))] and stem:[(v,v^*,v^o \in L^2(0,
 \frac{\partial}{\partial t} \int_{\Omega_{PML}} \rho v \psi dx + \int_{\Omega_{PML}} \rho T v \psi dx &= \int_{\Omega_{PML}} \frac{\partial v^*}{\partial t} \psi dx \quad \forall \psi \in L^2([\Omega_{PML}]^d).
 \end{align}
 ++++
+
+== References
+
+* [1] Sandrine Fauqueux. Eléments finis mixtes spectraux et couches absorbantes parfaitement adaptées pour la propagation d’ondes élastiques en régime transitoire. Modélisation et simulation. ENSTA ParisTech, 2003. Français. NNT : 2003PA090002. tel-00007445
+* [2] Florent Pled, Christophe Desceliers. Review and Recent Developments on the Perfectly Matched Layer (PML) Method for the Numerical Modeling and Simulation of Elastic Wave Propagation in Unbounded Domains. Archives of Computational Methods in Engineering, 2022, 10.1007/s11831-021-09581-y. hal-03196974
