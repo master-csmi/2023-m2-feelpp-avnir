@@ -35,11 +35,11 @@ where stem:[f] is the external force applied onto the deformable medium. In orde
 [stem]
 ++++
 \begin{equation}
-    \rho \ddot{u} = \nabla \cdot \sigma + f \quad \text{in} \ \Omega
+    \rho \frac{\partial^2}{\partial t^2} u = \nabla \cdot \sigma + f \quad \text{in} \ \Omega
 \end{equation}
 ++++
 
-where stem:[\rho] is the mass density of the medium and stem:[\ddot{u}] denotes the acceleration, in this case the second derivative with respect to time of the displacement field stem:[u], which will from now on be denoted by stem:[u_{tt}]. This equation can be rewritten as:
+where stem:[\rho] is the mass density of the medium and stem:[\frac{\partial^2}{\partial_{t^2}} u] denotes the acceleration, in this case the second derivative with respect to time of the displacement field stem:[u], which will from now on be denoted by stem:[u_{tt}]. This equation can be rewritten as:
 
 [stem]
 ++++

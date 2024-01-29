@@ -9,7 +9,7 @@
     "Meshes": {
         "wave": {
             "Import": {
-                "filename": "$cfgdir/square.geo",
+                "filename": "$cfgdir/square2d.geo",
                 "partition": 0,
                 "h": 0.03
             }
@@ -62,18 +62,10 @@
     },
     "Parameters": {
         "wave": {
-            "c": {
-                "expr": 1.0
-            },
-            "rho": {
-                "expr": "1.0"
-            },
-            "mu": {
-                "expr": "1.0"
-            },
-            "s": {
-                "expr": "0.0"
-            }
+            "c": 1.0,
+            "rho": "1.0",
+            "mu": "1.0",
+            "s": "0.0"
         }
     }
 }

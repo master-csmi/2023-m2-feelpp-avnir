@@ -17,7 +17,7 @@
 //! Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //!
 //! @file
-//! @brief Python bindings using pybind11 for the Laplacian example
+//! @brief Python bindings using pybind11 for the Wave example
 //! @author Christophe Prud'homme <christophe.prudhomme@cemosis.fr>
 //! @date 2023-10-31
 //! @copyright 2023-2024 Feel++ Consortium
@@ -54,44 +54,44 @@
 #include <pybind11/stl.h>
 #include <fmt/core.h>
 #include <mpi4py/mpi4py.h>
-#include "laplacian.hpp"
+#include "wave.hpp"
 
 namespace py = pybind11;
 
 template<int Dim,int Order>
 void
-laplacian_inst( py::module &m )
+wave_inst( py::module &m )
 {
     using namespace Feel;
 
-    py::class_<Laplacian<Dim,Order>>(m, fmt::format("Laplacian{}DP{}",Dim,Order).c_str() )
+    py::class_<Wave<Dim,Order>>(m, fmt::format("Wave{}DP{}",Dim,Order).c_str() )
         .def(py::init<>())
         .def(py::init<const nl::json &>())
-        .def("initialize", &Laplacian<Dim,Order>::initialize, "Initialize the Laplacian instance")
-        .def("processMaterials", &Laplacian<Dim,Order>::processMaterials, "Process materials from the json data")
-        .def("processBoundaryConditions", &Laplacian<Dim,Order>::processBoundaryConditions, "Process boundary conditions from the json data")
-        .def("run", &Laplacian<Dim,Order>::run, "Run the Laplacian instance")
-        .def("timeLoop", &Laplacian<Dim,Order>::timeLoop, "Execute the time loop")
-        .def("exportResults", &Laplacian<Dim,Order>::exportResults, "Postprocess and export the results")
-        .def("summary", &Laplacian<Dim,Order>::summary)
-        .def("specs", &Laplacian<Dim,Order>::specs, "Return the json specification of the Laplacian instance")
-        .def("setSpecs", &Laplacian<Dim,Order>::setSpecs, "Set the json specification of the Laplacian instance")
-        .def("mesh", &Laplacian<Dim,Order>::mesh, "Return the mesh")
-        .def("setMesh", &Laplacian<Dim,Order>::setMesh, "Set the mesh")
-        .def("Xh", &Laplacian<Dim,Order>::Xh, "Return the function space")
-        .def("u", &Laplacian<Dim,Order>::u, "Return the element u")
-        .def("setU", &Laplacian<Dim,Order>::setU, "Set the element u")
-        .def("measures", &Laplacian<Dim,Order>::measures, "Return the measures")
-        .def("writeResultsToFile", &Laplacian<Dim,Order>::writeResultsToFile, "Write the results to file")
+        .def("initialize", &Wave<Dim,Order>::initialize, "Initialize the Wave instance")
+        .def("processMaterials", &Wave<Dim,Order>::processMaterials, "Process materials from the json data")
+        .def("processBoundaryConditions", &Wave<Dim,Order>::processBoundaryConditions, "Process boundary conditions from the json data")
+        .def("run", &Wave<Dim,Order>::run, "Run the Wave instance")
+        .def("timeLoop", &Wave<Dim,Order>::timeLoop, "Execute the time loop")
+        .def("exportResults", &Wave<Dim,Order>::exportResults, "Postprocess and export the results")
+        .def("summary", &Wave<Dim,Order>::summary)
+        .def("specs", &Wave<Dim,Order>::specs, "Return the json specification of the Wave instance")
+        .def("setSpecs", &Wave<Dim,Order>::setSpecs, "Set the json specification of the Wave instance")
+        .def("mesh", &Wave<Dim,Order>::mesh, "Return the mesh")
+        .def("setMesh", &Wave<Dim,Order>::setMesh, "Set the mesh")
+        .def("Xh", &Wave<Dim,Order>::Xh, "Return the function space")
+        .def("u", &Wave<Dim,Order>::u, "Return the element u")
+        .def("setU", &Wave<Dim,Order>::setU, "Set the element u")
+        .def("measures", &Wave<Dim,Order>::measures, "Return the measures")
+        .def("writeResultsToFile", &Wave<Dim,Order>::writeResultsToFile, "Write the results to file")
         ;
 }
-PYBIND11_MODULE(_laplacian, m )
+PYBIND11_MODULE(_wave, m )
 {
     if (import_mpi4py()<0) return ;
-    m.doc() = fmt::format("Python bindings for Laplacian class" );  // Optional module docstring
-    laplacian_inst<2,1>(m);
-    laplacian_inst<2,2>(m);
-//    laplacian_inst<2,3>(m);
-//    laplacian_inst<3,1>(m);
-//    laplacian_inst<3,2>(m);
+    m.doc() = fmt::format("Python bindings for Wave class" );  // Optional module docstring
+    wave_inst<2,1>(m);
+    wave_inst<2,2>(m);
+//    wave_inst<2,3>(m);
+//    wave_inst<3,1>(m);
+//    wave_inst<3,2>(m);
 }

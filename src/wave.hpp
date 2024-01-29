@@ -40,7 +40,7 @@
 
 namespace Feel
 {
-inline const int FEELPP_DIM=2;
+inline const int FEELPP_DIM=3;
 inline const int FEELPP_ORDER=1;
 
 static inline const bool do_print = true;
@@ -76,7 +76,7 @@ nl::json summary( Container const& c, bool print = do_print )
 inline Feel::po::options_description
 makeOptions()
 {
-    Feel::po::options_description options( "laplacian options" );
+    Feel::po::options_description options( "wave options" );
     options.add_options()
 
         // mesh parameters
@@ -97,7 +97,7 @@ T get_value(const nl::json& specs, const std::string& path, const T& default_val
 }
 
 template <int Dim, int Order>
-class Laplacian
+class Wave
 {
 public:
     using mesh_t = Mesh<Simplex<Dim>>;
@@ -108,9 +108,10 @@ public:
     using form1_type = form1_t<space_t>; // Define the type for form1
     using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>;
     using exporter_ptrtype = std::shared_ptr<Exporter<mesh_t>>; // Define the type for exporter_ptrtype
+    using expr_type = typename Feel::vf::Expr<Feel::vf::GinacEx<2>>; // Define the type for expr_type
 
-    Laplacian() = default;
-    Laplacian(nl::json const& specs);
+    Wave() = default;
+    Wave(nl::json const& specs);
 
     // Accessors
     nl::json const& specs() const { return specs_; }
@@ -153,21 +154,19 @@ private:
     bdf_ptrtype bdf_;
     exporter_ptrtype e_;
     nl::json meas_;
-    // temporary solution for s, g, mu and rho
-    // See how Ginac expressions can be stored as members
-    std::string Mu, Rho, S, G;
+    expr_type mu, rho, s, g;
 };
 
 // Constructor
 template <int Dim, int Order>
-Laplacian<Dim, Order>::Laplacian(nl::json const& specs) : specs_(specs)
+Wave<Dim, Order>::Wave(nl::json const& specs) : specs_(specs)
 {
     initialize();
 }
 
 // Initialization
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::initialize()
+void Wave<Dim, Order>::initialize()
 {
     double H = specs_["/Meshes/wave/Import/h"_json_pointer].get<double>();
     // Load mesh and initialize Xh, a, l, etc.
@@ -197,8 +196,11 @@ void Laplacian<Dim, Order>::initialize()
     double time_step = get_value(specs_, "/TimeStepping/wave/step", 0.002);
 
     // CFL condition
+    ////////////////////////////////
     // C = max(C(x,y))
-    double C = specs_["/Parameters/wave/c/expr"_json_pointer].get<double>();
+    // Later find a way to setup c expression in json file and compute C
+    ////////////////////////////////
+    double C = specs_["/Parameters/wave/c"_json_pointer].get<double>();
     time_step = std::min(time_step, H/C);
 
     bdf_ = Feel::bdf( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
@@ -213,14 +215,14 @@ void Laplacian<Dim, Order>::initialize()
     auto w0_ = Xh_->element();
     w0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/velocity/Expression/Omega/expr"_json_pointer].get<std::string>() ));
     // Parameters
-    Mu = specs_["/Parameters/wave/mu/expr"_json_pointer].get<std::string>();
-    Rho = specs_["/Parameters/wave/rho/expr"_json_pointer].get<std::string>();
-    S = specs_["/Parameters/wave/s/expr"_json_pointer].get<std::string>();
-    G = specs_["/BoundaryConditions/wave/flux/Gamma/expr"_json_pointer].get<std::string>();
-    auto mu = expr(Mu);
-    auto rho = expr(Rho);
-    auto s = expr(S);
-    auto g = expr(G);
+    auto Mu = specs_["/Parameters/wave/mu"_json_pointer].get<std::string>();
+    auto Rho = specs_["/Parameters/wave/rho"_json_pointer].get<std::string>();
+    auto S = specs_["/Parameters/wave/s"_json_pointer].get<std::string>();
+    auto G = specs_["/BoundaryConditions/wave/flux/Gamma/expr"_json_pointer].get<std::string>();
+    mu = expr(Mu);
+    rho = expr(Rho);
+    s = expr(S);
+    g = expr(G);
 
     // Compute u1_
     a_.zero();
@@ -260,9 +262,9 @@ void Laplacian<Dim, Order>::initialize()
 
 // Process materials
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::processMaterials()
+void Wave<Dim, Order>::processMaterials()
 {
-    for ( auto [key, material] : specs_["/Models/laplacian/Materials"_json_pointer].items() )
+    for ( auto [key, material] : specs_["/Models/wave/Materials"_json_pointer].items() )
     {
         LOG( INFO ) << fmt::format( "Material {} found", material );
         std::string mat = fmt::format( "/Materials/{}/k", material.get<std::string>() );
@@ -279,12 +281,12 @@ void Laplacian<Dim, Order>::processMaterials()
 
 // Process boundary conditions
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::processBoundaryConditions()
+void Wave<Dim, Order>::processBoundaryConditions()
 {
     // BC Neumann
-    if ( specs_["/BoundaryConditions/laplacian"_json_pointer].contains( "flux" ) )
+    if ( specs_["/BoundaryConditions/wave"_json_pointer].contains( "flux" ) )
     {
-        for ( auto& [bc, value] : specs_["/BoundaryConditions/laplacian/flux"_json_pointer].items() )
+        for ( auto& [bc, value] : specs_["/BoundaryConditions/wave/flux"_json_pointer].items() )
         {
             LOG( INFO ) << fmt::format( "flux {}: {}", bc, value.dump() );
             auto flux = value["expr"].get<std::string>();
@@ -295,11 +297,11 @@ void Laplacian<Dim, Order>::processBoundaryConditions()
     }
 
     // BC Robin
-    if ( specs_["/BoundaryConditions/laplacian"_json_pointer].contains( "convective_laplacian_flux" ) )
+    if ( specs_["/BoundaryConditions/wave"_json_pointer].contains( "convective_wave_flux" ) )
     {
-        for ( auto& [bc, value] : specs_["/BoundaryConditions/laplacian/convective_laplacian_flux"_json_pointer].items() )
+        for ( auto& [bc, value] : specs_["/BoundaryConditions/wave/convective_wave_flux"_json_pointer].items() )
         {
-            LOG( INFO ) << fmt::format( "convective_laplacian_flux {}: {}", bc, value.dump() );
+            LOG( INFO ) << fmt::format( "convective_wave_flux {}: {}", bc, value.dump() );
             auto h = value["h"].get<std::string>();
             auto Text = value["Text"].get<std::string>();
 
@@ -311,9 +313,9 @@ void Laplacian<Dim, Order>::processBoundaryConditions()
     }
 }
 
-// Run method (main method to run Laplacian process)
+// Run method (main method to run Wave process)
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::run()
+void Wave<Dim, Order>::run()
 {
     std::cout << "\n***** Initialize *****" << std::endl;
     initialize();
@@ -329,13 +331,8 @@ void Laplacian<Dim, Order>::run()
 
 // Time loop
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::timeLoop()
+void Wave<Dim, Order>::timeLoop()
 {
-    // paramètres
-    auto mu = expr(Mu);
-    auto rho = expr(Rho);
-    auto s = expr(S);
-    auto g = expr(G);
     // time loop
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
@@ -359,7 +356,7 @@ void Laplacian<Dim, Order>::timeLoop()
 
 // Export results
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::exportResults()
+void Wave<Dim, Order>::exportResults()
 {
     e_->step(bdf_->time())->addRegions();
     e_->step(bdf_->time())->add("u", u_);
@@ -398,7 +395,7 @@ void Laplacian<Dim, Order>::exportResults()
     
 }
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::writeResultsToFile(const std::string& filename) const
+void Wave<Dim, Order>::writeResultsToFile(const std::string& filename) const
 {
     std::ofstream file(filename);
     if (file.is_open()) {
@@ -411,7 +408,7 @@ void Laplacian<Dim, Order>::writeResultsToFile(const std::string& filename) cons
 
 // Summary method
 template <int Dim, int Order>
-void Laplacian<Dim, Order>::summary(/*arguments*/) {
+void Wave<Dim, Order>::summary(/*arguments*/) {
     /* ... summary code ... */
 }
 
