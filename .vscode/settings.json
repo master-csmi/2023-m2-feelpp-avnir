@@ -81,4 +81,5 @@
         "valarray": "cpp",
         "variant": "cpp"
     },
+    "asciidoc.antora.enableAntoraSupport": true,
 }

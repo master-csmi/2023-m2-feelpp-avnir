@@ -5,6 +5,7 @@
 ** xref:examples/wave-fd.adoc[Acoustic Wave FDTD]
 ** xref:examples/wave-cfpde.adoc[Acoustic Wave CFPDES]
 ** xref:examples/wave-fem.adoc[Acoustic Wave FEM]
+** xref:examples/elasticity-fem.adoc[Elasticity FEM]
 * Setting up the development Environment
 ** xref:env/cmake.adoc[]
 ** xref:env/antora.adoc[]

@@ -1,0 +1,419 @@
+= Solving linear elasticity using finite element method
+Ariel DE VORA / Dieudonné MEDESSI / Obèd SABA
+:page-tags: case
+:page-illustration: square-fem.png
+:description: We simulate the wave equation using the finite element method
+
+== Mathematical framework
+
+In this section, we aim to solve the linear elasticity problem using the finite element method. We will first consider an isotropic medium and a homogeneous domain (which suits the test-case). This means determining the displacement field stem:[u] induced by the external force stem:[f] applied onto the deformable medium. The domain stem:[\Omega \subset \mathbb{R}^3], initially at rest, is the following:
+
+image::ROOT:test_case_metal_plate.png[width=600px]
+
+It is a rectangular steel plate with holes along the edges. The points F1, F2 and F3 are the ones where the force will be applied: a hammer will hit the plate at these points, which will be represented in our numerical model as a dirac source term (its intensity was determined thanks to a physical experiment).
+
+First of all, we will consider the case of a homogeneous medium, which will further be extended to the case of an heterogeneous medium (nuclear vessel), where the material properties will vary in the domain.
+
+Let us define the following quantities:
+
+* stem:[\Omega \subset \mathbb{R}^3] the domain of the problem
+* stem:[\Gamma = \partial \Omega] the boundary of the domain
+* stem:[\sigma] the stress field (constraints tensor)
+* stem:[\varepsilon(u) = \frac{1}{2}(\nabla u + \nabla u^T)] the linearized deformation field
+
+In the case of static linear elasticity, we can define the equilibrium condition as:
+
+[stem]
+++++
+\begin{equation}
+\nabla \cdot \sigma + f = 0 \quad \text{in } \Omega
+\end{equation}
+++++
+
+where stem:[f] is the external force applied onto the deformable medium. In order to extend this condition to the dynamic case, we can use the Newton's second law of motion:
+
+[stem]
+++++
+\begin{equation}
+    \rho \frac{\partial^2}{\partial t^2} u = \nabla \cdot \sigma + f \quad \text{in} \ \Omega
+\end{equation}
+++++
+
+where stem:[\rho] is the mass density of the medium and stem:[\frac{\partial^2}{\partial_{t^2}} u] denotes the acceleration, in this case the second derivative with respect to time of the displacement field stem:[u], which will from now on be denoted by stem:[u_{tt}]. This equation can be rewritten as:
+
+[stem]
+++++
+\begin{equation}
+    \rho u_{tt} - \nabla \cdot \sigma = f \quad \text{in} \ \Omega
+\end{equation}
+++++
+
+In the case of linear elasticity, we can define the stress field as:
+
+[stem]
+++++
+\begin{align*}
+    \sigma &= \lambda \nabla \cdot u I + 2 \mu \varepsilon(u) \\
+    &= \lambda (\nabla \cdot u) I + \mu (\nabla u + \nabla u^T)
+\end{align*}
+++++
+
+where stem:[\lambda] and stem:[\mu] are the Lamé coefficients, which are material properties of the medium. Since we are considering an homogeneous medium at first, we can safely assume that these coefficients are constant in the domain.
+
+Finally, we can rewrite our problem in the case of dynamic linear elasticity as follows:
+
+[stem]
+++++
+\begin{cases}
+\begin{align}
+    \rho u_{tt} - \nabla \cdot \sigma &= f \quad \text{in} \ \Omega \\
+    \sigma &= \lambda (\nabla \cdot u) I + \mu (\nabla u + \nabla u^T) \\
+    \sigma \cdot n &= g \quad \text{on} \ \Gamma \\
+    u(x, 0) &= 0 \quad \text{in} \ \Omega \\
+    u_t(x, 0) &= 0 \quad \text{in} \ \Omega
+\end{align}
+\end{cases}
+++++
+
+where stem:[n] is the outward unit normal vector to the boundary stem:[\Gamma].
+
+=== Weak formulation
+
+In order to solve this problem using the finite element method, we need to define the weak formulation of the first equation, which will then be handled by the finite element library FEEL++. Given the equation, we want to define a bilinear form stem:[a(u, v)] and a linear form stem:[l(v)] such that:
+
+[stem]
+++++
+\begin{equation}
+    a(u, v) = l(v) \quad \forall v \in V
+\end{equation}
+++++
+
+where stem:[V] is a suitable function space. In order to do so, we can multiply the equation by a test function stem:[v \in V], integrate over the domain and apply the divergence theorem (in the case of a Riemannian manifold with boundary):
+
+[stem]
+++++
+\begin{align}
+    \int_{\Omega} \rho u_{tt} \cdot v \, dx - \int_{\Omega} \nabla \cdot \sigma \cdot v \, dx &= \int_{\Omega} f \cdot v \, dx \\
+    \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \nabla v \, dx - \int_{\Gamma} \sigma \cdot n \cdot v \, ds &= \int_{\Omega} f \cdot v \, dx \\
+    \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \varepsilon(v) \, dx &= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} g \cdot v \, ds
+\end{align}
+++++
+
+where stem:[\sigma : \varepsilon (v)] denotes the maximal contraction of the tensors stem:[\sigma] and stem:[\varepsilon(v)], equal to stem:[\sum_{i, j} \sigma_{ij} \varepsilon(v)_{ij}]. Proof:
+
+Let us consider the 2D case (3D can be proven in the same manner). We start by defining:
+
+[stem]
+++++
+\begin{align}
+ u &= \begin{pmatrix} u_1 \\ u_2 \end{pmatrix} \\
+ \nabla \cdot u &= u_{1i} + u_{2j} \\
+\end{align}
+++++
+
+We denote by stem:[u_{1i}] the partial derivative of stem:[u_1] with respect to the stem:[i]th variable. We can then rewrite the maximal contraction as:
+
+[stem]
+++++
+\begin{align}
+\sigma(\mathbf{u}) : \nabla \mathbf{v} &= \left( (\lambda + 2 \mu)u_{1i} + \lambda u_{2j} \right)v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) v_{1j}\\
+&+ \left( \mu (u_{1j} + u_{2i}) \right) v_{2i} + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+\sigma(\mathbf{u}) : \varepsilon(\mathbf{v}) &= \left( (\lambda + 2 \mu ) u_{1i} + \lambda u_{2j} \right) v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) \cdot \frac{1}{2}(v_{1j} + v_{2i}) \\
+&+ \left( \mu (u_{1j} + u_{2i}) \right) \cdot \frac{1}{2}(v_{1j} + v_{2i}) + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+&=  \left( (\lambda + 2 \mu)u_{1i} + \lambda u_{2j} \right)v_{1i} + \left( \mu (u_{1j} + u_{2i}) \right) v_{1j}\\
+&+ \left( \mu (u_{1j} + u_{2i}) \right) v_{2i} + \left( \lambda u_{1i} + (\lambda + 2 \mu) u_{2j} \right) v_{2j}\\
+\sigma(\mathbf{u}) : \nabla \mathbf{v} &= \sigma(\mathbf{u}) : \varepsilon(\mathbf{v})
+\end{align}
+++++
+
+
+In order to be able to solve for stem:[u], we need to define stem:[a(u,v)] and stem:[l(v)] as respectively a bilinear and a linear form. Therefore, we will rewrite the last equation as:
+
+[stem]
+++++
+\begin{align}
+\sigma(\mathbf{u}) : \varepsilon(\mathbf{v}) &= \lambda(\nabla \mathbf{u})I : \varepsilon(\mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v}) \\
+&= \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v})
+\end{align}
+++++
+
+
+[stem]
+++++
+\begin{align}
+    a(u, v) &= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \sigma : \varepsilon(v) \, dx \\
+    a(u, v) &= \int_{\Omega} \rho u_{tt} \cdot v \, dx + \int_{\Omega} \lambda(\nabla \mathbf{u})(\nabla \mathbf{v}) + 2\mu\varepsilon(\mathbf{u}) : \varepsilon(\mathbf{v}) \, dx \\
+    l(v) &= \int_{\Omega} f \cdot v \, dx + \int_{\Gamma} g \cdot v \, ds
+\end{align}
+++++
+
+Which gives us the bilinear and linear forms we were looking for. We can now solve for stem:[u] using the finite element method.
+
+But we wan't to adapt it and approximate the second order derivative of the displacement field stem:[u_{tt}] by a second order centered finite difference scheme:
+
+[stem]
+++++
+\begin{equation}
+    u_{tt} \approx \frac{u_{n+1} - 2 u_n + u_{n-1}}{\Delta t^2}
+\end{equation}
+++++
+
+where stem:[u_n] denotes the displacement field at the time stem:[t = n \Delta t].
+
+==== Initial conditions
+
+In order to compute the initial displacement fields stem:[u^0] and stem:[u^1], we can use the following second order Taylor expansion:
+
+[stem]
+++++
+\begin{align}
+    u_1 &= u_0 + \Delta t \partial_t u_0 + \frac{\Delta t^2}{2} \partial_t^2 u_0 + \mathcal{O}(\Delta t^3) \\
+    \int_\Omega u_1 \cdot v \, dx &= \int_\Omega u_0 \cdot v \, dx + \Delta t \int_\Omega \partial_t u_0 \cdot v \, dx + \frac{\Delta t^2}{2} \int_\Omega \partial_t^2 u_0 \cdot v \, dx + \mathcal{O}(\Delta t^3) \\
+    &= \frac{\Delta t^2}{2} \int_\Omega \partial_t^2 u_0 \cdot v \, dx + \mathcal{O}(\Delta t^3)
+\end{align}
+++++
+
+Since the initial displacement field stem:[u_0] and the initial velocity field stem:[\partial_t u_0] are both equal to zero. Finally, we can solve for stem:[u_1] since we know that stem:[u_0] has to be the solution of:
+
+[stem]
+++++
+\begin{equation}
+    \partial_t^2 u_0 - \nabla \cdot \sigma = f_0 \quad \text{in} \ \Omega
+\end{equation}
+++++
+
+Where stem:[f_0] represents the intial external force applied onto the medium (in our case defined by the dirac source term). We can then define the initial displacement field stem:[u_0] as the solution of the following problem:
+
+[stem]
+++++
+\begin{align}
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx - \int_\Omega \nabla \cdot \sigma(u_0) \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx \\
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx + \int_\Omega \sigma(u_0) : \nabla v \, dx - \int_\Gamma \sigma(u_0) \cdot n \cdot v \, ds &= \int_\Omega f_0 \cdot v \, dx \\
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx + \int_\Omega \sigma(u_0) : \varepsilon(v) \, dx &= \int_\Omega f_0 \cdot v \, dx + \int_\Gamma g_0 \cdot v \, ds
+\end{align}
+++++
+
+Which gives us the following expression for stem:[\partial_t^2 u^0]:
+
+[stem]
+++++
+\begin{align}
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \sigma(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \\
+    \int_\Omega \partial_t^2 u^0 \cdot v \, dx &= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\varepsilon(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds
+\end{align}
+++++
+
+We can then define the initial displacement field stem:[u^1] as the solution of the following problem:
+
+[stem]
+++++
+\begin{align}
+    \int_\Omega u_1 \cdot v \, dx &= \frac{\Delta t^2}{2 \rho} \int_\Omega \partial_t^2 u_0 \cdot v \, dx \\
+    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu\varepsilon(u_0) : \varepsilon(v) \, dx + \int_\Gamma g_0 \cdot v \, ds \right) \\
+    &= \frac{\Delta t^2}{2 \rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \mathbf{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx + \int_\Gamma g_0 \cdot v \, ds \right)
+\end{align}
+++++
+
+==== Time discretization / loop
+
+We can adapt the weak formulation to the time discretization scheme we want to use. In our case, we will use the centered finite difference scheme of order 2, which means that we will have to solve the following problem at each time step:
+
+[stem]
+++++
+\begin{align}
+    \int_\Omega \frac{u_{n+1} - 2 u_n + u_{n-1}}{\Delta t^2} \cdot v \, dx + \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx - \int_\Gamma g \cdot v \, ds &= \int_\Omega f_n \cdot v \, dx
+\end{align}
+++++
+
+But we want to solve for stem:[u^{n+1}], meaning we have to rewrite the equation as:
+
+[stem]
+++++
+\begin{align}
+    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx + \int_\Gamma \sigma(u_n) \cdot n \cdot v \, ds \right) \\
+    &+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx \\
+    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu\varepsilon(u_n) : \varepsilon(v) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
+    &+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx
+\end{align}
+++++
+
+But we can simplify the equation by rewriting the maximal contraction. Let stem:[\varepsilon(u_n)] and stem:[\varepsilon(v)] be two stem:[3 \times 3] real matrices, with elements stem:[\varepsilon(u_n)_{ij}] and stem:[epsilon(v)_{ij}] respectively. The maximal contraction (double dot product) of stem:[\sigma] and stem:[\varepsilon] is defined as:
+[stem]
+++++
+\begin{equation}
+    \varepsilon(u_n) : \varepsilon(v) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ij}
+\end{equation}
+++++
+To express this using matrix operations, consider the trace of the product of stem:[\varepsilon(u_n)] and stem:[\varepsilon(v)^T] (the transpose of stem:[\varepsilon(v)]):
+[stem]
+++++
+\begin{equation}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} (\varepsilon(u_n) \varepsilon(v)^T)_{ii}
+\end{equation}
+++++
+The element stem:[(\varepsilon(u_n) \varepsilon(v)^T)_{ii}] is the dot product of the $i$th row of stem:[\varepsilon(u_n)] and the $i$th row of $\varepsilon(v)^T$. This is equivalent to the sum of the products of corresponding elements in the $i$th row of stem:[\varepsilon(u_n)] and the stem:[i]th column of stem:[\varepsilon(v)]:
+[stem]
+++++
+\begin{equation}
+    (\varepsilon(u_n) \varepsilon(v)^T)_{ii} = \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ji}
+\end{equation}
+++++
+Therefore, the trace is:
+[stem]
+++++
+\begin{equation}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ji}
+\end{equation}
+++++
+Since stem:[\varepsilon(v)^T] has stem:[\varepsilon(v)_{ji}] as its stem:[(i, j)]-element, the expression becomes:
+[stem]
+++++
+\begin{equation}
+    \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T) = \sum_{i=1}^{3} \sum_{j=1}^{3} \varepsilon(u_n)_{ij} \varepsilon(v)_{ij} = \varepsilon(u_n) : \varepsilon(v)
+\end{equation}
+++++
+Thus, we have shown that:
+[stem]
+++++
+\begin{equation}
+    \varepsilon(u_n) : \varepsilon(v) = \text{Tr}(\varepsilon(u_n) \varepsilon(v)^T)
+\end{equation}
+++++
+
+Finally, we can rewrite the equation as:
+
+[stem]
+++++
+\begin{align}
+    \int_\Omega u_{n+1} \cdot v \, dx &= \frac{\Delta t^2}{\rho} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \\
+    &+ 2 \int_\Omega u_n \cdot v \, dx - \int_\Omega u_{n-1} \cdot v \, dx
+\end{align}
+++++
+
+== Implementation using Feel++
+
+Now that the mathematical framework has been defined, we can implement the problem using the finite element library Feel++.
+First, we will initialize our environment using vectorial spaces:
+
+[source, cpp]
+----
+using mesh_t = Mesh<Simplex<Dim>>;
+using space_t = Pchv_type<mesh_t, Order>;
+using space_ptr_t = Pchv_ptrtype<mesh_t, Order>;
+using element_ = typename space_t::element_type;
+using form2_type = form2_t<space_t,space_t>;
+using form1_type = form1_t<space_t>;
+using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>;
+using exporter_ptrtype = std::shared_ptr<Exporter<mesh_t>>;
+----
+
+=== Initial conditions
+
+Then, we will start be computing our initial displacement fields stem:[u_0] and stem:[u_1] using the following code:
+
+[source, cpp]
+----
+E = get_value(specs_, "/Parameters/elastic/E/expr", 1.0e9); // Young modulus
+nu = get_value(specs_, "/Parameters/elastic/nu/expr", 0.3); // Poisson ratio
+rho = get_value(specs_, "/Parameters/elastic/rho/expr", 7800.0); // Density in kg.m^-3 (default : steel)
+lambda = E*nu/( (1+nu)*(1-2*nu) );
+mu = E/(2*(1+nu));
+F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
+G = specs_["/BoundaryConditions/elastic/Gamma/g/expr"_json_pointer].get<std::string>();
+std::string DTU0 = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
+auto f = expr<FEELPP_DIM,1>(F);
+auto g = expr<FEELPP_DIM,1>(G);
+auto dtu0 = expr<FEELPP_DIM,1>(DTU0);
+auto u0_ = Xh_->element();
+
+node_type n(FEELPP_DIM);
+for (int i = 0 ; i < FEELPP_DIM ; i++){
+    n(i) = 0.1;
+}
+auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() );
+
+double rho = 7800.; // kg.m^-3
+
+l_.zero();
+a_.zero();
+a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
+f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
+f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
+f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
+a_.solve( _rhs = f_0, _solution = u_ );
+
+bdf_ = Feel::bdf( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
+bdf_->start();
+if ( steady )
+    bdf_->setSteady();
+bdf_->initialize( u0_ ); // set u0_
+bdf_->shiftRight( u_ ); // set u1_
+----
+
+The contribution of the dirac is directly embeded in the linear form stem:[f_0] and will be used in order to compute stem:[u_1].
+
+=== Time discretization / loop
+
+We will compute the displacement field stem:[u_{n+1}] at each time step using the following code:
+
+[source, cpp]
+----
+auto un = bdf_->unknown(0); // un = u_n
+auto un_1 = bdf_->unknown(1);  // un_1 = u_{n-1}
+
+auto dt = expr(bdf_->timeStep());
+
+at_ += integrate( _range = elements(mesh_), _expr = trans(idt(u_))*id(v_) );
+
+lt_ += integrate( _range = elements(mesh_), _expr = dt*dt/rho * inner(f,id(v_))); //1
+lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * lambda * inner(gradv(un),grad(v_))); //2
+lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * 2 * mu * trace(sym(gradv(un)) * trans(sym(grad(v_)) ))); //3
+lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = dt*dt/rho * inner(g, id(v_))); //4
+lt_ += integrate( _range = elements(mesh_), _expr = 2*inner(id(un),id(v_)) - inner(id(un_1),id(v_))); //5
+
+at_.solve( _rhs = lt_, _solution = u_ );
+
+this->exportResults();
+
+at_.zero();
+lt_.zero();
+----
+
+=== Execution
+
+One can execute the code using the following command:
+[source,bash]
+----
+cd build/default/src &&
+./feelpp_fs_elasticity --config-file ../../../src/cases/elastic/elastic.cfg
+----
+
+The results are automatically exported to the feelpp database, it's location is given at the end of the execution in the
+terminal.
+
+=== Results
+
+The results are stored as an ensight format, which can be visualized using Paraview. Since the results are displacement fields, we can either visualize them using the 'Glyph' or the 'Warp by vector' filter (which can retrieved in the menu unde 'Filter' > 'Alphabetical' > 'Glyph' or 'Warp by vector').
+
+=== Testcase
+
+The first test was done on the same square.geo file that was used for the acoustic wave equation, a 2D representation of a square of size 2.
+
+The second one was to study the correctness of the code by comparing the numerical results with measurements taken during a physical experiment. The experiment consisted in hitting a steel plate with a hammer at three different points (F1, F2 and F3), and measuring the time it took for the disturbance / wave to reach points 1 and 2. Here is the setup of the experiment:
+
+image::ROOT:choc_plaque.png[width=600px]
+
+The template was given in a .step format, which had to be converted to a .geo file to adapt to feelpp's restrictions. The final model is the following:
+
+image::ROOT:plaque_geo.png[width=600px]
+
+
+The boundary had to consider the holes in the plate, which were modeled as cylinders, and could therefore be properly meshed:
+
+image::ROOT:plaque_trous.png[width=600px]
+
+The boundary of the domain (Gamma) was also created alongside of two groups, Dirac and PointsOfInterests, 
+respectively corresponding to the points where the force is applied and the points where the measurements are taken. Their repartition is visible on the following image:
+
+image::ROOT:plaque_points.png[width=600px]
