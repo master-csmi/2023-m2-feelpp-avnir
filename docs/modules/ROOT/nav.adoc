@@ -2,7 +2,6 @@
 * xref:quickstart.adoc[]
 * xref:overview.adoc[]
 * xref:examples/index.adoc[Use Cases]
-** xref:examples/fin.adoc[Thermal Fin]
 ** xref:examples/wave-fd.adoc[Acoustic Wave FDTD]
 ** xref:examples/wave-cfpde.adoc[Acoustic Wave CFPDES]
 ** xref:examples/wave-fem.adoc[Acoustic Wave FEM]

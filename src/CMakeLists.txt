@@ -21,6 +21,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 #
+feelpp_add_application(wave SRCS wave.cpp TESTS INSTALL )
 feelpp_add_application(elasticity SRCS elasticity.cpp TESTS INSTALL )
 feelpp_add_testcase(cases PREFIX fp CATEGORY feelpp)
 
@@ -30,13 +31,13 @@ feelpp_add_testcase(cases PREFIX fp CATEGORY feelpp)
 # endif()
 
 if ( SKBUILD_PROJECT_NAME )
-    python_add_library(_laplacian MODULE _laplacian.cpp WITH_SOABI)
-    target_link_libraries(_laplacian PRIVATE pybind11::headers Feelpp::feelpp)
-    target_compile_definitions(_laplacian PRIVATE VERSION_INFO=${PROJECT_VERSION})
+    python_add_library(_wave MODULE _wave.cpp WITH_SOABI)
+    target_link_libraries(_wave PRIVATE pybind11::headers Feelpp::feelpp)
+    target_compile_definitions(_wave PRIVATE VERSION_INFO=${PROJECT_VERSION})
 
-    install(TARGETS _laplacian DESTINATION 2023_m2_feelpp_sonorhc)
+    install(TARGETS _wave DESTINATION 2023_m2_feelpp_sonorhc)
 else()
-    feelpp_add_pymodule(laplacian SRCS _laplacian.cpp DESTINATION ${PROJECT_NAME})
+    feelpp_add_pymodule(wave SRCS _wave.cpp DESTINATION ${PROJECT_NAME})
     file(GLOB PYFILES "${CMAKE_CURRENT_SOURCE_DIR}/2023_m2_feelpp_sonorhc/*.py")
     install(FILES ${PYFILES} DESTINATION ${FEELPP_PYTHON_MODULE_PATH}/${PROJECT_NAME})
 endif()
