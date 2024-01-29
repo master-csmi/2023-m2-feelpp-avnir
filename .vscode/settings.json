@@ -79,7 +79,14 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "matrixd": "cpp",
+        "matrixf": "cpp",
+        "state": "cpp",
+        "valueobject": "cpp",
+        "observer_ptr": "cpp",
+        "ref_ptr": "cpp",
+        "texture": "cpp"
     },
     "asciidoc.antora.enableAntoraSupport": true,
 }

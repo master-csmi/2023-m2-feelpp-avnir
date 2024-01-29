@@ -4,19 +4,25 @@
     "Models": {
         "wave": {
             "name": "Omega"
+        },
+        "elastic": {
+            "Materials": {
+
+
+            }
         }
     },
     "Meshes": {
-        "wave": {
+        "elastic": {
             "Import": {
-                "filename": "$cfgdir/square2d.geo",
+                "filename": "$cfgdir/square.geo",
                 "partition": 0,
-                "h": 0.03
+                "h": 0.02
             }
         }
     },
     "Spaces": {
-        "wave": {
+        "elastic": {
             "Domain": {
 
 
@@ -29,43 +35,51 @@
             "steady": false,
             "order" : 2,
             "start": 0.0,
-            "end": 4,
-            "step": 0.0075
+            "end": 0.1,
+            "step": 0.002
         }
     },
     "InitialConditions": {
-        "wave": {
-            "pressure": {
+        "elastic": {
+            "externalF": {
                 "Expression": {
                     "Omega": {
-                        "expr": "0.3*exp(-((x-1.0)^2+(y-1.0)^2)/(2*0.05^2)):x:y"
+                        "expr": "{0.0,-9.81}"
                     }
                 }
             },
-            "velocity": {
+            "displacement": {
                 "Expression": {
                     "Omega": {
-                        "expr": "0.0"
+                        "expr": "{0.0,0.0}"
                     }
                 }
             }
         }
     },
     "BoundaryConditions": {
-        "wave": {
-            "flux": {
-                "Gamma": {
-                    "expr": "0.0"
+        "elastic": {
+            "Gamma" : {
+                "g" :  {
+                    "expr" : "{0.0,0.0}"
                 }
             }
         }
     },
     "Parameters": {
-        "wave": {
-            "c": 1.0,
-            "rho": "1.0",
-            "mu": "1.0",
-            "s": "0.0"
+        "elastic": {
+            "E": {
+                "expr": 1000000.0
+            },
+            "nu": {
+                "expr": 0.3
+            },
+            "rho": {
+                "expr": 7800.0
+            },
+            "dirac_magintude": {
+                "expr": 1.0
+            }
         }
     }
 }
