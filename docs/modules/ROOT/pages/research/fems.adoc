@@ -100,7 +100,7 @@ We will reduce the storage of the stiffness matrix involved in the spectral fini
 === Setting up a mixed formulation
 We can write the equation in the following mixed forms:
 
-* System of first order equations:
+* stem:[\textit{System of first order equations}]:
 
 [stem]
 ++++
@@ -114,7 +114,7 @@ v(x,0) &= 0 \qquad \text{ in } \Omega
 ++++
 Where stem:[F] is the time primitive of the second member and stem:[v] is the velocity of the fluid.
 
-* System of second order equations:
+* stem:[\textit{System of second order equations}]:
 
 [stem]
 ++++
