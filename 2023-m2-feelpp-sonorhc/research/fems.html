@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>2023 M2 Feelpp Sonorhc Notebook :: 2023 M2 Feelpp Sonorhc</title>
-    <link rel="canonical" href="https://feelpp.github.io/2023-m2-feelpp-sonorhc/2023-m2-feelpp-sonorhc/env/jupyter.html">
+    <title>Spectral Element Method :: 2023 M2 Feelpp Sonorhc</title>
+    <link rel="canonical" href="https://feelpp.github.io/2023-m2-feelpp-sonorhc/2023-m2-feelpp-sonorhc/research/fems.html">
     <meta name="generator" content="Antora 3.1.7">
     <link rel="stylesheet" href="../../_/css/site.css">
 <link rel="icon" href="../../_/img/favicon.ico" type="image/x-icon">
@@ -147,16 +147,16 @@ MathJax.Hub.Config({
   </li>
   <li class="nav-item" data-depth="1">
     <button class="nav-item-toggle"></button>
-    <a class="nav-link" href="../research/index.html">Theoretical Research</a>
+    <a class="nav-link" href="index.html">Theoretical Research</a>
 <ul class="nav-list">
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="../research/abstract.html">Abstract</a>
+    <a class="nav-link" href="abstract.html">Abstract</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="fems.html">Spectral element methods</a>
   </li>
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="../research/fems.html">Spectral element methods</a>
-  </li>
-  <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="../research/pml.html">Perfectly Matched Layer</a>
+    <a class="nav-link" href="pml.html">Perfectly Matched Layer</a>
   </li>
 </ul>
   </li>
@@ -183,22 +183,22 @@ MathJax.Hub.Config({
     <span class="nav-text">Setting up the development Environment</span>
 <ul class="nav-list">
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="cmake.html">CMake Environment</a>
+    <a class="nav-link" href="../env/cmake.html">CMake Environment</a>
   </li>
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="antora.html">Antora Environment</a>
+    <a class="nav-link" href="../env/antora.html">Antora Environment</a>
   </li>
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="vscode.html">VS Code Integration</a>
+    <a class="nav-link" href="../env/vscode.html">VS Code Integration</a>
   </li>
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="githubactions.html">GitHub Actions</a>
+    <a class="nav-link" href="../env/githubactions.html">GitHub Actions</a>
   </li>
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="rename.html">Renaming the Project</a>
+    <a class="nav-link" href="../env/rename.html">Renaming the Project</a>
   </li>
-  <li class="nav-item is-current-page" data-depth="2">
-    <a class="nav-link" href="jupyter.html">Jupyter Notebook</a>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/jupyter.html">Jupyter Notebook</a>
   </li>
 </ul>
   </li>
@@ -228,13 +228,13 @@ MathJax.Hub.Config({
   <nav class="breadcrumbs" aria-label="breadcrumbs">
   <ul>
     <li><a href="../index.html">Template Project</a></li>
-    <li>Setting up the development Environment</li>
-    <li><a href="jupyter.html">Jupyter Notebook</a></li>
+    <li><a href="index.html">Theoretical Research</a></li>
+    <li><a href="fems.html">Spectral element methods</a></li>
   </ul>
 </nav>
 
   
-    <div class="edit-this-page"><a href="https://github.com/master-csmi/2023-m2-feelpp-sonorhc/edit/master/docs/modules/ROOT/pages/env/jupyter.adoc">Edit this Page</a></div>
+    <div class="edit-this-page"><a href="https://github.com/master-csmi/2023-m2-feelpp-sonorhc/edit/master/docs/modules/ROOT/pages/research/fems.adoc">Edit this Page</a></div>
   
   <div class="page-downloads">
   <span class="label">Download as</span>
@@ -245,12 +245,6 @@ MathJax.Hub.Config({
         <img class="pdf-file-icon icon" src="../../_/img/pdf.svg"/> .pdf
       </a>
     </li>
-      <li>
-        <a href="../_attachments/env/jupyter.ipynb"
-           title="Download Jupyter Notebook" data-toggle="tooltip" data-placement="left" class="jupyter-download">
-          <img class="jupyter-file-icon icon" src="../../_/img/jupyter-logo.svg"/> .ipynb
-        </a>
-      </li>
   </ul>
 </div>
 </div>
@@ -260,74 +254,225 @@ MathJax.Hub.Config({
   <div class="toc-menu"></div>
 </aside>
 <article class="doc">
-<h1 class="page">2023 M2 Feelpp Sonorhc Notebook</h1>
-<div id="preamble">
-<div class="sectionbody">
-<div class="paragraph lead">
-<p>This is a Jupyter notebook for the 2023 M2 Feelpp Sonorhc project.</p>
-</div>
-</div>
-</div>
+<h1 class="page">Spectral Element Method</h1>
 <div class="sect1">
 <h2 id="_introduction"><a class="anchor" href="#_introduction"></a>1. Introduction</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>You write your notebook in AsciiDoc including LaTeX math and thanks to the <code>:page-jupyter: true</code> attribute, the notebook is converted to a Jupyter notebook when the book is built.</p>
+<p>The modeling and simulation of acoustic waves present a significant challenge, especially when dealing with complex geometries or high frequencies. The equations of acoustic waves, which describe the propagation of sound in various mediums, require sophisticated numerical methods for accurate and efficient resolution. Among these methods, hexahedral finite element techniques stand out for their flexibility and power.</p>
+</div>
+<div class="paragraph">
+<p>Among the methods used to simulate these waves, finite element methods, particularly with hexahedral elements, are particularly effective. They are well-suited to modeling complex shapes and handling a wide range of sound frequencies, which is crucial for practical applications in acoustics.</p>
+</div>
+<div class="paragraph">
+<p>We consider the following problem in arbitrary dimension (\(d = 2\) or \(3\)):</p>
+</div>
+<div class="paragraph">
+<p>Find \(p : \Omega \times [0, T ] \rightarrow \mathbb{R}\) such that:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align*}
+\mu \frac{\partial^2 p}{\partial z^2} (x,t) - \nabla \cdot \left( \frac{1}{\rho} \nabla p \right) (x,t) &amp;= f(x,t) \qquad \text{ in } \Omega \times [0, T], \\
+p(x,t) &amp;= 0 \qquad \text{ on } \partial\Omega \times [0, T], \\
+p(x,0) &amp;= 0 \qquad \text{ in } \Omega, \\
+\frac{\partial p}{\partial t}(x,0) &amp;= 0 \qquad \text{ in } \Omega,
+\end{align*}\]
+</div>
+</div>
+<div class="paragraph">
+<p>where:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>\(p\) represents the pressure in the fluid,</p>
+</li>
+<li>
+<p>\(\Omega\) is an open set in \(\mathbb{R}^d\),</p>
+</li>
+<li>
+<p>\(x = (x_i, \ldots, x_d)\) denotes the coordinates in the canonical basis of \(\mathbb{R}^d\),</p>
+</li>
+<li>
+<p>\(\rho\) is the mass density of the fluid medium, expressed in \(kg.m^{-3}\),</p>
+</li>
+<li>
+<p>\(\mu\) is the modulus of compressibility of the medium, expressed in Pa, and satisfies: \(\mu = \rho c^2\) where \(c\) is the speed of the wave in the medium (in \(m.s^{-1}\)).</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_code_cells"><a class="anchor" href="#_code_cells"></a>2. Code cells</h2>
+<h2 id="_introduction_to_hexahedral_finite_element_methods"><a class="anchor" href="#_introduction_to_hexahedral_finite_element_methods"></a>2. Introduction to hexahedral finite element methods</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>You can include code cells in your notebook using the <code>[source,python]</code> block macro.</p>
+<p>We consider:</p>
 </div>
-<div class="listingblock">
+<div class="ulist">
+<ul>
+<li>
+<p>The space \(C^0(\Omega)\) of continuous functions on \(\Omega\).</p>
+</li>
+<li>
+<p>A partition of \(\Omega\) into hexahedrons: \(\mathcal{T} = \{ \Omega_k \}_{k=1}^{N}\), where the set of hexahedrons forms a conforming mesh of the domain (see Figure 1.1 for an example when \(d = 2\)),</p>
+</li>
+<li>
+<p>The unit cube \(K = [0, 1]^d\) and \(\hat{x} = (\hat{x}_i)_{i=1..d}\) the associated coordinate system,</p>
+</li>
+<li>
+<p>\(F\), the vectorial application transforming \(K\) in \(\Omega_k\) (see Figure 1.2 for \(d = 2\)),</p>
+</li>
+<li>
+<p>The space \(Q_r(K)\) of polynomials with real coefficients and variables in \(K\), where each variable is of degree less than or equal to \(r\), such that:</p>
+</li>
+</ul>
+</div>
+<div class="stemblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">import sys, os
-print("Hello, world!")</code></pre>
+\[\begin{align*}
+Q_r(K) = \{ \sum_{\mathbf{l} \in \{0, \ldots, r\}^d} a_{\mathbf{l}} \prod_{i=1}^{d} \hat{x}_i^{l_i} \bigg| a_{\mathbf{l}} \in \mathbb{R} \text{ where } \mathbf{l} &amp;= (l_1, \ldots, l_d) \in \{0, \ldots, r\}^d \}
+\end{align*}\]
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The approximation space</p>
+</li>
+</ul>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align*}
+U^d_r = \{ \phi \in C^0(\Omega) \text{ such that } \phi|_{\Omega_k} \circ F_k \in Q_r(K) \text{ and } \phi &amp;= 0 \text{ on } \partial\Omega \}
+\end{align*}\]
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/quadrangle1.png" alt="quadrangle1" width="500" height="200">
+</div>
+<div class="title">Figure 1. A figure of a mesh in 2D</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="../_images/quadrangle2.png" alt="quadrangle2" width="500" height="200">
+</div>
+<div class="title">Figure 2. A figure of the mapping F</div>
+</div>
+<div class="sect2">
+<h3 id="_spectral_finite_element_method"><a class="anchor" href="#_spectral_finite_element_method"></a>2.1. Spectral finite element method</h3>
+<div class="paragraph">
+<p>By multiplying our equation by a test function \(\phi\) defined on \(\Omega\) and integrating by parts, we obtain the variational formulation:</p>
+</div>
+<div class="paragraph">
+<p>Find \(p \in L^\infty(0, T; H^1_0(\Omega))\) such that:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align*}
+\frac{\partial^2}{\partial t^2} \int_{\Omega} \frac{1}{\mu} p \phi \, dx + \int_{\Omega} \frac{1}{\rho} \nabla p \cdot \nabla \phi \, dx &amp;= \int_{\Omega} f \phi \, dx \qquad \forall \phi \in H^1_0(\Omega).
+\end{align*}\]
+</div>
+</div>
+<div class="paragraph">
+<p>We then approximate the solution \(p\) by a function \(p_h\) in the space \(U^d_r\) and we obtain the following discrete problem:</p>
+</div>
+<div class="paragraph">
+<p>Find \(p_h \in L^\infty(0, T; U^d_r)\) such that:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align*}
+\frac{\partial^2}{\partial t^2} \int_{\Omega} \frac{1}{\mu} p_h \phi_h \, dx + \int_{\Omega} \frac{1}{\rho} \nabla p_h \cdot \nabla \phi_h \, dx &amp;= \int_{\Omega} f \phi_h \, dx \qquad \forall \phi_h \in U^d_r. \\
+p_h(x,0) &amp;= 0 \qquad \forall x \in \Omega, \\
+\frac{\partial p_h}{\partial t}(x,0) &amp;= 0 \qquad \forall x \in \Omega.
+\end{align*}\]
+</div>
+</div>
+<div class="paragraph">
+<p>The resulting mass matrix becomes densely populated as the simulation space expands and the order of approximation increases. This poses a double problem: a high computational load for the inversion of the matrix at each time step, and substantial data storage if we choose to retain the inverse of the mass matrix. These constraints underline the need for a more efficient method of handling large matrices in the context of acoustic simulation.</p>
+</div>
+<div class="paragraph">
+<p>One solution to this problem is the use of Legendre-Gauss-Lobatto quadrature points for interpolation and the calculation of matrices by Gauss-Lobatto numerical integration, leading to mass condensation and enabling the use of an explicit scheme. This method is known as the "spectral finite element method". So the important point of this method is to make the interpolation points coincide with the quadrature points of the integration formulas.
+quadrature points of the integration formulas.</p>
 </div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_feel_code_cells"><a class="anchor" href="#_feel_code_cells"></a>3. Feel++ Code cells</h2>
+<h2 id="_the_spectral_mixed_finite_element_method"><a class="anchor" href="#_the_spectral_mixed_finite_element_method"></a>3. The spectral mixed finite element method</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>You can include Feel++ code cells in your notebook using the <code>[source,python]</code> block macro.</p>
+<p>We will reduce the storage of the stiffness matrix involved in the spectral finite element method by using a mixed form of equation by using a mixed form of our equation.</p>
 </div>
-<div class="listingblock">
+<div class="sect2">
+<h3 id="_setting_up_a_mixed_formulation"><a class="anchor" href="#_setting_up_a_mixed_formulation"></a>3.1. Setting up a mixed formulation</h3>
+<div class="paragraph">
+<p>We can write the equation in the following mixed forms:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>\(\textit{System of first order equations}\):</p>
+</li>
+</ul>
+</div>
+<div class="stemblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">import feelpp
-app = feelpp.Environment(["myapp"],config=feelpp.globalRepository("myapp"))
-
-geo=feelpp.download( "github:{repo:feelpp,path:feelpp/quickstart/laplacian/cases/feelpp2d/feelpp2d.geo}", worldComm=app.worldCommPtr() )[0]
-print("geo file: {}".format(geo))
-mesh = feelpp.load(feelpp.mesh(dim=2,realdim=2), geo, 0.1)
-
-Xh=feelpp.functionSpace(mesh=mesh, space="Pchv")
-f = Xh.element()
-f.on(range=feelpp.elements(mesh),expr=feelpp.expr("{sin(pi*x)*sin(pi*y),cos(pi*x)*cos(pi*y)}:x:y",row=2,col=1))
-e= feelpp.exporter(mesh=mesh)
-e.add("f",f)
-e.save()</code></pre>
+\[\begin{align*}
+\frac{1}{\mu}\frac{\partial p}{\partial t} - \nabla \cdot v &amp;= F \qquad \text{ in } \Omega \times (0,T) \\
+\rho \frac{\partial v}{\partial t} - \nabla p &amp;= 0 \qquad \text{ in } \Omega \times (0,T) \\
+p &amp;= 0 \qquad \text{ on } \partial\Omega \times (0,T) \\
+p(x,0) &amp;= 0 \qquad \text{ in } \Omega \\
+v(x,0) &amp;= 0 \qquad \text{ in } \Omega
+\end{align*}\]
 </div>
 </div>
 <div class="paragraph">
-<p>You can then visualize the result using the <code>pyvista</code> package as follows:</p>
+<p>Where \(F\) is the time primitive of the second member and \(v\) is the velocity of the fluid.</p>
 </div>
-<div class="listingblock">
+<div class="ulist">
+<ul>
+<li>
+<p>\(\textit{System of second order equations}\):</p>
+</li>
+</ul>
+</div>
+<div class="stemblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-python hljs" data-lang="python">from xvfbwrapper import Xvfb
-vdisplay = Xvfb()
-vdisplay.start()
-
-import pyvista as pv
-pv.set_jupyter_backend('panel')
-reader = pv.get_reader("exports/ensightgold/Exporter/Exporter.case")
-mesh = reader.read()
-mesh.plot(scalars="f",show_edges=True)</code></pre>
+\[\begin{align*}
+\frac{1}{\mu}\frac{\partial^2 p}{\partial t^2} - \nabla \cdot w &amp;= f \qquad \text{ in } \Omega \times (0,T) \\
+\rho w - \nabla p &amp;= 0 \qquad \text{ in } \Omega \times (0,T) \\
+p &amp;= 0 \qquad \text{ on } \partial\Omega \times (0,T) \\
+p(x,0) &amp;= 0 \qquad \text{ in } \Omega \\
+w(x,0) &amp;= 0 \qquad \text{ in } \Omega
+\end{align*}\]
 </div>
+</div>
+<div class="paragraph">
+<p>Where \(w\) is the acceleration of the fluid.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_references"><a class="anchor" href="#_references"></a>4. References</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>[1] Sandrine Fauqueux. Eléments finis mixtes spectraux et couches absorbantes parfaitement adaptées pour la propagation d’ondes élastiques en régime transitoire. Modélisation et simulation. ENSTA ParisTech, 2003. Français. NNT : 2003PA090002. tel-00007445</p>
+</li>
+<li>
+<p>[2] Florent Pled, Christophe Desceliers. Review and Recent Developments on the Perfectly Matched
+Layer (PML) Method for the Numerical Modeling and Simulation of Elastic Wave Propagation in
+Unbounded Domains. Archives of Computational Methods in Engineering, 2022, 10.1007/s11831-
+021-09581-y. hal-03196974</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
