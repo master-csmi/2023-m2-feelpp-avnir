@@ -90,6 +90,12 @@
             },
             "dirac_magintude": {
                 "expr": 1.0
+            },
+            "beta": {
+                "expr": 0.25
+            },
+            "gamma": {
+                "expr": 0.5
             }
         }
     }

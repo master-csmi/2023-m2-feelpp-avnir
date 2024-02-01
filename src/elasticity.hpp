@@ -155,7 +155,7 @@ private:
     bdf_ptrtype bdf_;
     exporter_ptrtype e_;
     nl::json meas_;
-    double E, nu, lambda, mu, rho;
+    double E, nu, lambda, mu, rho, beta, gamma;
     std::string F, G;
 };
 
@@ -203,6 +203,8 @@ void Elastic<Dim, Order>::initialize()
     E = get_value(specs_, "/Parameters/elastic/E/expr", 1.0e9); // Young modulus
     nu = get_value(specs_, "/Parameters/elastic/nu/expr", 0.3); // Poisson ratio
     rho = get_value(specs_, "/Parameters/elastic/rho/expr", 7800.0); // Density in kg.m^-3 (default : steel)
+    beta = get_value(specs_, "/Parameters/elastic/beta/expr", 0.25); // Newmark beta
+    gamma = get_value(specs_, "/Parameters/elastic/gamma/expr", 0.5); // Newmark gamma
     lambda = E*nu/( (1+nu)*(1-2*nu) );
     mu = E/(2*(1+nu));
     F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
@@ -212,7 +214,9 @@ void Elastic<Dim, Order>::initialize()
     auto g = expr<FEELPP_DIM,1>(G);
     auto dtu0 = expr<FEELPP_DIM,1>(DTU0);
     auto u0_ = Xh_->element();
+    auto dtun = Xh_->element();
     u0_.zero();
+    dtun.zero();
     std::cout << "**** elasticity parameters initialized **** \n" << std::endl;
 
 
@@ -247,24 +251,45 @@ void Elastic<Dim, Order>::initialize()
     std::cout << "Order : " << FEELPP_ORDER << std::endl;
 
 
+    ////////////////////////////////////////////////////
+    //        Non-adequate time integration           //
+    ////////////////////////////////////////////////////
+    // l_.zero();
+    // a_.zero();
+
+    // a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
+    // l_ += f_0;
+    // l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
+    // l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
+    // l_ += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
+
+    // a_.solve( _rhs = l_, _solution = u_ );
+
+    ////////////////////////////////////////////////////
+    //              Newmark beta-model                //
+    ////////////////////////////////////////////////////
     l_.zero();
     a_.zero();
-    a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
 
+    a_ += integrate( _range = elements(mesh_), _expr= 1 / time_step / time_step / beta * trans(idt(u_))*id(v_)
+                                                + lambda * inner(grad(u_), grad(v_)) + 2 * mu * trace(sym(grad(u_)*trans(sym(grad(v_))))));
+    l_ += f_0.scale((1 - 2*beta)/(2*beta));
+    l_ += integrate( _range = elements(mesh_), _expr= -(1 - 2*beta)/(2*beta) * lambda * inner(gradv(u0_),grad(v_))
+                                                      - 2 * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_)))));
+    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= (1 + (1-2*beta)/(2*beta)) * inner(g, id(v_)));
 
-    l_ += f_0;
-    l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
-    l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
-    l_ += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
     a_.solve( _rhs = l_, _solution = u_ );
 
+    a_.zero();
+    l_.zero();
 
-    // f_0 += integrate(_range = elements(mesh_), _expr = time_step * time_step / rho / 2 * id(v_)); // contribution du dirac évalué sur v
-    // f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
-    // f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
-    // f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
-    // a_.solve( _rhs = f_0, _solution = u_ );
+    a_ += integrate( _range = elements(mesh_), _expr= trans(idt(dtun))*id(v_) );
+    l_ += f_0.scale(1-gamma);
+    l_ += integrate( _range = elements(mesh_), _expr= time_step * (1-gamma)*(-lambda*inner(gradv(u0_),grad(v_)) - 2*mu*trace(sym(gradv(u0_))*trans(sym(grad(v_)))) )  );
+    l_ += integrate( _range = elements(mesh_), _expr= time_step * gamma * (inner(f,id(v_)) - lambda*inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_))))));
+    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= inner(g, id(v_)) );
 
+    a_.solve( _rhs = l_, _solution = dtun );
 
     ////////////////////////////////////////////////////
     //                Initialize BDF                  //
