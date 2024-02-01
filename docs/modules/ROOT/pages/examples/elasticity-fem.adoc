@@ -290,6 +290,163 @@ Finally, we can rewrite the equation as:
 \end{align}
 ++++
 
+== Using the Newmark beta method
+
+In order to assure the stability of our scheme, the final implementation will use the Newmark beta model in order to perform the time integration. The method consists of solving the following two equations for stem:[u_{n+1}] and stem:[\partial_t u_{n+1}] respectively:
+
+[stem]
+++++
+\begin{align}
+\begin{cases}
+    u_{n+1} = u_n + \Delta t \partial_t u_n + \frac{\Delta t^2}{2} \left( (1 - 2 \beta) \partial_{tt} u_n + 2 \beta \partial_{tt} u_{n+1} \right) \\
+    \partial_t u_{n+1} = \partial_t u_n + \Delta t \left( (1 - \gamma) \partial_{tt} u_n + \gamma \partial_{tt} u_{n+1} \right)
+\end{cases}
+\end{align}
+++++
+
+where stem:[\beta] and stem:[\gamma] are parameters of the method.
+Rearraging the terms, we can rewrite the equations as:
+
+[stem]
+++++
+\begin{align}
+\partial_{tt} u_{n+1} = \frac{1}{\beta \Delta t^2} \left( u_{n+1} - u_n - \Delta t \partial_t u_n \right) - \frac{1 - 2 \beta}{2 \beta} \partial_{tt} u_n \\
+\end{align}
+++++
+
+But we already know that stem:[u_{n+1}] and stem:[u_n] are the respective solutions of the following problems:
+
+[stem]
+++++
+\begin{align}
+\begin{cases}
+\partial_{tt} u_{n+1} -  \nabla \cdot \sigma(u_{n+1}) = f \\
+\partial_{tt} u_n -  \nabla \cdot \sigma(u_n) = f
+\end{cases}
+\end{align}
+++++
+
+The first can be expanded as:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \partial_{tt} u_{n+1} \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+\int_\Omega \frac{1}{\beta \Delta t^2} \left( u_{n+1} - u_n - \Delta t \partial_t u_n \right) \cdot v \, -\frac{1-2\beta}{2\beta} \partial_{tt} u_n \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+\int_\Omega \frac{1}{\beta \Delta t^2} \left( u_{n+1} - u_n - \Delta t \partial_t u_n \right) \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{1-2\beta}{2\beta} \int_\Omega \partial_{tt} u_n \cdot v \, dx \\
+\int_\Omega \frac{1}{\beta \Delta t^2} u_{n+1} \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{1-2\beta}{2\beta} \int_\Omega \partial_{tt} u_n \cdot v \, dx \\
+&+ \frac{1}{\beta \Delta t^2} \int_\Omega u_n \cdot v \, dx + \frac{1}{\beta \Delta t} \int_\Omega \partial_t u_n \cdot v \, dx
+\end{align}
+++++
+
+
+Knowing that stem:[u_n] is also solution to the dynamic linear elasticity problem, we have that:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \partial_{tt} u_n \cdot v \, dx + \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+\int_\Omega \partial_{tt} u_n \cdot v \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds - \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx \\
+\int_\Omega \partial_{tt} u_n \cdot v \, dx &= \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu\varepsilon(u_n) : \varepsilon(v) \, dx + \int_\Gamma g \cdot v \, ds \\
+\int_\Omega \partial_{tt} u_n \cdot v \, dx &= \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds
+\end{align}
+++++
+
+Which leads us to the equation:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \frac{1}{\beta \Delta t^2} u_{n+1} \cdot v \, dx &+ \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx = \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{1}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \frac{1-2\beta}{2\beta} \int_\Omega \partial_{tt} u_n \cdot v \, dx \\
+&= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{1}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \frac{1-2\beta}{2\beta} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right)
+\end{align}
+++++
+
+Finally we have the form:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \frac{1}{\beta \Delta t^2} u_{n+1} \cdot v \, dx &+ \int_\Omega \lambda(\nabla u_{n+1})(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_{n+1}) \varepsilon(v)^T \right) \, dx = \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+&+ \frac{1}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \frac{1-2\beta}{2\beta} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right)
+\end{align}
+++++
+
+
+=== Computing the initial displacement fields
+
+The last equation can be used in order to compute stem:[u_1] since the initial displacement field stem:[u_0] and its velocity are known as equal to zero. We can then define the initial displacement field stem:[u_1] as the solution of the following problem:
+
+[stem]
+++++
+\begin{align}
+\frac{1}{\beta \Delta t^2} \int_\Omega u_1 \cdot v \, dx &+ \int_\Omega \lambda(\nabla u_1)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_1) \varepsilon(v)^T \right) \, dx = \int_\Omega f_0 \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+&+ \frac{1 - 2\beta}{2\beta} \int_\Omega f_0 \cdot v \, dx + \frac{1 - 2\beta}{2\beta} \int_\Gamma g \cdot v \, ds \\
+&- \frac{1 - 2\beta}{2\beta} \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx
+\end{align}
+++++
+
+But in order to start iterating over the time steps, we also need to compute and store the velocities of our displacement fields, starting by computing stem:[\partial_t u_1] thanks to the equation from the Newmark beta method:
+
+[stem]
+++++
+\begin{align}
+\partial_t u_1 &= \partial_t u_0 + \Delta t \left( (1 - \gamma) \partial_{tt} u_0 + \gamma \partial_{tt} u_1 \right) \\
+\partial_t u_1 &= \Delta t \left( (1 - \gamma) \partial_{tt} u_0 + \gamma \partial_{tt} u_1 \right) \\
+\end{align}
+++++
+
+But we have that:
+
+[stem]
+++++
+\begin{align}
+\begin{cases}
+\int_\Omega \partial_{tt} u_0 \cdot v &= \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \\
+\int_\Omega \partial_{tt} u_1 \cdot v &= \int_\Omega f_1 \cdot v \, dx - \int_\Omega \lambda(\nabla u_1)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_1) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds
+\end{cases}
+\end{align}
+++++
+
+And we already computed stem:[u_1] before, so the following equation can be solved thanks to feel++:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \partial_t u_1 \cdot v &= \Delta t \left( (1 - \gamma) \int_\Omega \partial_{tt} u_0 \cdot v \, dx + \gamma \int_\Omega \partial_{tt} u_1 \cdot v \, dx \right) \\
+\int_\Omega \partial_t u_1 \cdot v &= \Delta t \left( (1 - \gamma) \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right. \\
+&+ \left. \gamma \left( \int_\Omega f_1 \cdot v \, dx - \int_\Omega \lambda(\nabla u_1)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_1) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right) \\
+\end{align}
+++++
+
+=== Time discretization / loop
+
+During the time loop, we will also have to compute the velocity stem:[\partial_t u_{n+1}] at each time step in order to be able to use it during the following one. As before, we will first solve for stem:[u_{n+1}] with stem:[partial_t u_n], and use it in order to compute stem:[\partial_t u_{n+1}]:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \partial_t u_{n+1} \cdot v \, dx &= \Delta t \left( (1 - \gamma) \int_\Omega \partial_{tt} u_n \cdot v \, dx + \gamma \int_\Omega \partial_{tt} u_{n+1} \cdot v \, dx \right) \\
+\int_\Omega \partial_t u_{n+1} \cdot v \, dx &= \Delta t \left( (1 - \gamma) \left( \int_\Omega f_n \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right. \\
+&+ \left. \gamma \left( \int_\Omega f_{n+1} \cdot v \, dx - \int_\Omega \lambda(\nabla u_{n+1})(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_{n+1}) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right) \\
+\end{align}
+++++
+
+This value is computed thanks to feel++ and stored in the variable stem:[dtu_n]. It will be used in order to compute stem:[u_{n+1}] as follows:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \frac{1}{\beta \Delta t^2} u_{n+1} \cdot v \, dx &+ \int_\Omega \lambda(\nabla u_{n+1})(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_{n+1}) \varepsilon(v)^T \right) \, dx = \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+&+ \frac{1}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \frac{1-2\beta}{2\beta} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right)
+\end{align}
+++++
+
+
 == Implementation using Feel++
 
 Now that the mathematical framework has been defined, we can implement the problem using the finite element library Feel++.
