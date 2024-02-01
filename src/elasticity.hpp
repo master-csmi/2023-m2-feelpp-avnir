@@ -206,7 +206,7 @@ void Elastic<Dim, Order>::initialize()
     lambda = E*nu/( (1+nu)*(1-2*nu) );
     mu = E/(2*(1+nu));
     F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
-    G = specs_["/BoundaryConditions/elastic/Gamma/g/expr"_json_pointer].get<std::string>();
+    G = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
     std::string DTU0 = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
     auto f = expr<FEELPP_DIM,1>(F);
     auto g = expr<FEELPP_DIM,1>(G);
@@ -219,26 +219,27 @@ void Elastic<Dim, Order>::initialize()
     /////////////////////////////////////////////////////
     //               Initial Condition                 //
     /////////////////////////////////////////////////////
-    std::cout << "**** Initialize Dirac **** \n" << std::endl;
-    node_type n(FEELPP_DIM);
-    for (int i = 0 ; i < FEELPP_DIM ; i++){
-        n(i) = 0.1;
-    }
-    auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
-    auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
+    // std::cout << "**** Initialize Dirac **** \n" << std::endl;
+    // node_type n(FEELPP_DIM);
+    // for (int i = 0 ; i < FEELPP_DIM ; i++){
+    //     n(i) = 0.1;
+    // }
+    // std::cout << " n = " << n << "\n" << std::endl;
+    // auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+    // auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
 
     /////////////////////////////////////////////////
     //         Test using different dirac          //
     /////////////////////////////////////////////////
     // // Initialize the Dirac as a smoothstep
-    // std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
-    // auto f_0 = form1(_test = Xh_);
-    // double diracMagnitude = get_value(specs_, "/Parameters/elastic/dirac_magintude/expr", 0.1);
-    // auto dirac = vec(
-    //     diracMagnitude * expr("smoothstep(x,0.01,0.02):x"),
-    //     diracMagnitude * expr("smoothstep(y,0.01,0.02):y"));
-    // std::cout << "**** Dirac initialized **** \n" << std::endl;
-    // u0_.on(_range=elements(mesh_), _expr=dirac);
+    std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
+    auto f_0 = form1(_test = Xh_);
+    double diracMagnitude = get_value(specs_, "/Parameters/elastic/dirac_magintude/expr", 0.1);
+    auto dirac = vec(
+        diracMagnitude * expr("smoothstep(x,0.01,0.02):x"),
+        diracMagnitude * expr("smoothstep(y,0.01,0.02):y"));
+    std::cout << "**** Dirac initialized **** \n" << std::endl;
+    u0_.on(_range=elements(mesh_), _expr=dirac);
 
     double rho = 7800.; // kg.m^-3
 
@@ -249,11 +250,20 @@ void Elastic<Dim, Order>::initialize()
     l_.zero();
     a_.zero();
     a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
+
+
+    l_ += f_0;
+    l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
+    l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
+    l_ += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
+    a_.solve( _rhs = l_, _solution = u_ );
+
+
     // f_0 += integrate(_range = elements(mesh_), _expr = time_step * time_step / rho / 2 * id(v_)); // contribution du dirac évalué sur v
-    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
-    f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
-    f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
-    a_.solve( _rhs = f_0, _solution = u_ );
+    // f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
+    // f_0 += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
+    // f_0 += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
+    // a_.solve( _rhs = f_0, _solution = u_ );
 
 
     ////////////////////////////////////////////////////
@@ -316,32 +326,15 @@ void Elastic<Dim, Order>::processMaterials()
 template <int Dim, int Order>
 void Elastic<Dim, Order>::processBoundaryConditions()
 {
-    // BC Dirichlet (homogenous if g = 0)
-    if ( specs_["/BoundaryConditions/elastic/Gamma/"_json_pointer].contains( "g" ) )
-    {
-        for ( auto& [bc, value] : specs_["/BoundaryConditions/elastic/Gamma/g"_json_pointer].items() )
-        {
-            LOG( INFO ) << fmt::format( "g {}: {}", bc, value.dump() );
-            // auto flux = value["expr"].get<std::string>();
+    // Boundary Condition Dirichlet
+    auto bc_dir = specs_["/BoundaryConditions/elastic/Dirichlet/Gamma/g/expr"_json_pointer].get<std::string>();
+    std::cout << "BoundaryCondition Dirichlet : " << bc_dir << std::endl;
+    a_+=on(_range=markedfaces(mesh_,"Gamma"), _rhs=l_, _element=u_, _expr=expr<FEELPP_DIM,1>( bc_dir ) );
 
-            // l_ += integrate( _range = markedfaces( support( Xh_ ), bc ),
-            //         _expr = inner( expr<FEELPP_DIM,1>( G ), id( v_ )) );
-            a_+=on(_range=markedfaces(mesh_,"Gamma"), _rhs=l_, _element=u_, _expr=expr<FEELPP_DIM,1>( G ) );
-        }
-    }
-
-    // BC Neuman (Pure Traction Problem)
-    if ( specs_["/BoundaryConditions/elastic/Gamma"_json_pointer].contains( "pure_traction" ) )
-    {
-        for ( auto& [bc, value] : specs_["/BoundaryConditions/elsatic/Gamma/pure_traction/g"_json_pointer].items() )
-        {
-            LOG( INFO ) << fmt::format( "pure traction {}: {}", bc, value.dump() );
-            auto g = value["g"].get<std::string>();
-
-            l_ += integrate( _range = markedfaces( support( Xh_ ), bc ),
-                    _expr = inner( expr<FEELPP_DIM,1>( g ), id( v_ )) );
-        }
-    }
+    // Boundary Condition Neumann
+    auto bc_neu = specs_["/BoundaryConditions/elastic/Neumann/Gamma/pure_traction/g/expr"_json_pointer].get<std::string>();
+    std::cout << "Boundary Condition Neumann : " <<  bc_neu << std::endl;
+    l_ += integrate( _range = markedfaces( mesh_ , "Gamma"), _expr = inner( expr<FEELPP_DIM,1>( bc_neu ), id( v_ )) );
 }
 
 // Run method (main method to run Laplacian process)
@@ -370,6 +363,7 @@ void Elastic<Dim, Order>::timeLoop()
     auto f = expr<FEELPP_DIM,1>(F);
     auto g = expr<FEELPP_DIM,1>(G);
     double rho = 1.0;
+    int it = 0; // initialization of the counter for time backtracing when evaluating the disturbance on the point of interest
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
         if (Environment::isMasterRank())
@@ -394,6 +388,8 @@ void Elastic<Dim, Order>::timeLoop()
 
         at_.zero();
         lt_.zero();
+
+        it += 1;
     }
 }
 
