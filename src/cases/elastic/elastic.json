@@ -80,7 +80,7 @@
     "Parameters": {
         "elastic": {
             "E": {
-                "expr": 1000000.0
+                "expr": 210000000000.0
             },
             "nu": {
                 "expr": 0.3

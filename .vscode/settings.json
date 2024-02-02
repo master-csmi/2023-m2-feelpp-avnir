@@ -86,7 +86,8 @@
         "valueobject": "cpp",
         "observer_ptr": "cpp",
         "ref_ptr": "cpp",
-        "texture": "cpp"
+        "texture": "cpp",
+        "csignal": "cpp"
     },
     "asciidoc.antora.enableAntoraSupport": true,
 }

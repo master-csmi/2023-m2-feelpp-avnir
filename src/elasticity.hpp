@@ -43,7 +43,7 @@
 namespace Feel
 {
 inline const int FEELPP_DIM=2;
-inline const int FEELPP_ORDER=1;
+inline const int FEELPP_ORDER=2;
 
 static inline const bool do_print = true;
 static inline const bool dont_print = false;
@@ -149,7 +149,7 @@ private:
     nl::json specs_;
     std::shared_ptr<mesh_t> mesh_;
     space_ptr_t Xh_;
-    element_ u_, v_;
+    element_ u_, v_, dtun;
     form2_type a_, at_;
     form1_type l_, lt_;
     bdf_ptrtype bdf_;
@@ -185,6 +185,7 @@ void Elastic<Dim, Order>::initialize()
 
     u_ = Xh_->element();
     v_ = Xh_->element();
+    dtun = Xh_->element();
 
     a_ = form2( _test = Xh_, _trial = Xh_ );
     at_ = form2( _test = Xh_, _trial = Xh_ );
@@ -200,7 +201,7 @@ void Elastic<Dim, Order>::initialize()
     /////////////////////////////////////////////////////
     //  Parameters and Initializations for Elasticity  //
     /////////////////////////////////////////////////////
-    E = get_value(specs_, "/Parameters/elastic/E/expr", 1.0e9); // Young modulus
+    E = get_value(specs_, "/Parameters/elastic/E/expr", 2.1e11); // Young's modulus
     nu = get_value(specs_, "/Parameters/elastic/nu/expr", 0.3); // Poisson ratio
     rho = get_value(specs_, "/Parameters/elastic/rho/expr", 7800.0); // Density in kg.m^-3 (default : steel)
     beta = get_value(specs_, "/Parameters/elastic/beta/expr", 0.25); // Newmark beta
@@ -209,12 +210,9 @@ void Elastic<Dim, Order>::initialize()
     mu = E/(2*(1+nu));
     F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
     G = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
-    std::string DTU0 = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
     auto f = expr<FEELPP_DIM,1>(F);
     auto g = expr<FEELPP_DIM,1>(G);
-    auto dtu0 = expr<FEELPP_DIM,1>(DTU0);
     auto u0_ = Xh_->element();
-    auto dtun = Xh_->element();
     u0_.zero();
     dtun.zero();
     std::cout << "**** elasticity parameters initialized **** \n" << std::endl;
@@ -223,71 +221,67 @@ void Elastic<Dim, Order>::initialize()
     /////////////////////////////////////////////////////
     //               Initial Condition                 //
     /////////////////////////////////////////////////////
-    // std::cout << "**** Initialize Dirac **** \n" << std::endl;
-    // node_type n(FEELPP_DIM);
-    // for (int i = 0 ; i < FEELPP_DIM ; i++){
-    //     n(i) = 0.1;
-    // }
-    // std::cout << " n = " << n << "\n" << std::endl;
-    // auto s = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
-    // auto f_0 = form1( _test = Xh_, _vector = s->containerPtr() ); // contient la contribution du dirac
+    std::cout << "**** Initialize Dirac **** \n" << std::endl;
+    node_type n(FEELPP_DIM);
+    for (int i = 0 ; i < FEELPP_DIM ; i++){
+        n(i) = 0.1;
+    }
+    std::cout << " n = " << n << "\n" << std::endl;
+    auto s_dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+    auto f_0 = form1( _test = Xh_, _vector = s_dirac->containerPtr() ); // contient la contribution du dirac
 
     /////////////////////////////////////////////////
     //         Test using different dirac          //
     /////////////////////////////////////////////////
-    // // Initialize the Dirac as a smoothstep
-    std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
-    auto f_0 = form1(_test = Xh_);
-    double diracMagnitude = get_value(specs_, "/Parameters/elastic/dirac_magintude/expr", 0.1);
-    auto dirac = vec(
-        diracMagnitude * expr("smoothstep(x,0.01,0.02):x"),
-        diracMagnitude * expr("smoothstep(y,0.01,0.02):y"));
-    std::cout << "**** Dirac initialized **** \n" << std::endl;
-    u0_.on(_range=elements(mesh_), _expr=dirac);
+    // Initialize the Dirac as a smoothstep
+
+    // std::cout << "**** Initialization of the Dirac **** \n" << std::endl;
+    // auto f_0 = form1(_test = Xh_);
+    // double diracMagnitude = get_value(specs_, "/Parameters/elastic/dirac_magintude/expr", 0.1);
+    // auto dirac = vec(
+    //     diracMagnitude * expr("smoothstep(x,0.01,0.02):x") * expr("smoothstep(y,0.01,0.02):y"),
+    //     diracMagnitude * expr("smoothstep(x,0.01,0.02):x") * expr("smoothstep(y,0.01,0.02):y"));
+    // std::cout << "**** Dirac initialized **** \n" << std::endl;
+    // u0_.on(_range=elements(mesh_), _expr=dirac);
+
+
+    // auto localizedPerturbation = expr<FEELPP_DIM,1>("{1.,1.}*triangle(x,0.01,0.02)*triangle(y,0.01,0.02):x:y");
+    // auto localizedPerturbation = expr("triangle(x,0.01,0.02)*triangle(y,0.01,0.02):x:y");
+    // u0_.on(_range=elements(mesh_), _expr=localizedPerturbation);
+
 
     double rho = 7800.; // kg.m^-3
 
     std::cout << "Dim : " << FEELPP_DIM << std::endl;
     std::cout << "Order : " << FEELPP_ORDER << std::endl;
 
-
     ////////////////////////////////////////////////////
-    //        Non-adequate time integration           //
-    ////////////////////////////////////////////////////
-    // l_.zero();
-    // a_.zero();
-
-    // a_ += integrate( _range = elements(mesh_), _expr=trans(idt(u_))*id(v_)); //1
-    // l_ += f_0;
-    // l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho / 2 * lambda * inner(gradv(u0_),grad(v_))); //3
-    // l_ += integrate(_range = elements(mesh_), _expr = -time_step * time_step / rho * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_))))); //4
-    // l_ += integrate(_range = markedfaces(mesh_, "Gamma"), _expr = time_step * time_step / rho / 2 * inner(g, id(v_))); //5
-
-    // a_.solve( _rhs = l_, _solution = u_ );
-
-    ////////////////////////////////////////////////////
-    //              Newmark beta-model                //
+    //          Newmark beta-model for dttun          //
     ////////////////////////////////////////////////////
     l_.zero();
     a_.zero();
 
-    a_ += integrate( _range = elements(mesh_), _expr= 1 / time_step / time_step / beta * trans(idt(u_))*id(v_)
+    a_ += integrate( _range = elements(mesh_), _expr= rho / time_step / time_step / beta * trans(idt(u_))*id(v_)
                                                 + lambda * inner(grad(u_), grad(v_)) + 2 * mu * trace(sym(grad(u_)*trans(sym(grad(v_))))));
-    l_ += f_0.scale((1 - 2*beta)/(2*beta));
-    l_ += integrate( _range = elements(mesh_), _expr= -(1 - 2*beta)/(2*beta) * lambda * inner(gradv(u0_),grad(v_))
-                                                      - 2 * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_)))));
-    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= (1 + (1-2*beta)/(2*beta)) * inner(g, id(v_)));
+    l_ += f_0;
+    l_ += integrate( _range = elements(mesh_), _expr= rho * (1 - 2*beta)/(2*beta) * inner(f,id(v_)) );
+    l_ += integrate( _range = elements(mesh_), _expr= - rho * (1 - 2*beta)/(2*beta) * lambda * inner(gradv(u0_),grad(v_))
+                                                - rho * (1 - 2*beta)/(beta) * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_)))));
+    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= (1 + rho * (1-2*beta)/(2*beta) * inner(g, id(v_)))); // = (1 + (1 - 2*beta)/(2*beta) * inner(g, id(v_)));
 
     a_.solve( _rhs = l_, _solution = u_ );
 
+    ////////////////////////////////////////////////////
+    //         Newmark gamma-model for dtun           //
+    ////////////////////////////////////////////////////
     a_.zero();
     l_.zero();
 
     a_ += integrate( _range = elements(mesh_), _expr= trans(idt(dtun))*id(v_) );
-    l_ += f_0.scale(1-gamma);
-    l_ += integrate( _range = elements(mesh_), _expr= time_step * (1-gamma)*(-lambda*inner(gradv(u0_),grad(v_)) - 2*mu*trace(sym(gradv(u0_))*trans(sym(grad(v_)))) )  );
-    l_ += integrate( _range = elements(mesh_), _expr= time_step * gamma * (inner(f,id(v_)) - lambda*inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_))))));
-    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= inner(g, id(v_)) );
+    l_ += f_0; // f_0.scale(time_step*(1-gamma)/rho);
+    l_ += integrate( _range = elements(mesh_), _expr= time_step * (1-gamma) / rho *(-lambda*inner(gradv(u0_),grad(v_)) - 2*mu*trace(sym(gradv(u0_))*trans(sym(grad(v_)))) )  );
+    l_ += integrate( _range = elements(mesh_), _expr= time_step * gamma / rho * (inner(f,id(v_)) - lambda*inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_))))));
+    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= 1/rho * inner(g, id(v_)) );
 
     a_.solve( _rhs = l_, _solution = dtun );
 
@@ -394,26 +388,50 @@ void Elastic<Dim, Order>::timeLoop()
         if (Environment::isMasterRank())
             std::cout << "time " << bdf_->time() << std::endl;
         // u_ = u_n+1
+        // dtun holds the last velocity of the displacement field u
         auto un = bdf_->unknown(0); // un = u_n
         auto un_1 = bdf_->unknown(1);  // un_1 = u_{n-1}
 
         auto dt = expr(bdf_->timeStep());
 
-        at_ += integrate( _range = elements(mesh_), _expr = trans(idt(u_))*id(v_) );
-
-        lt_ += integrate( _range = elements(mesh_), _expr = dt*dt/rho * inner(f,id(v_))); //1
-        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * lambda * inner(gradv(un),grad(v_))); //2
-        lt_ += integrate( _range = elements(mesh_), _expr = -dt*dt/rho * 2 * mu * trace(sym(gradv(un)) * trans(sym(grad(v_)) ))); //3
-        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = dt*dt/rho * inner(g, id(v_))); //4
-        lt_ += integrate( _range = elements(mesh_), _expr = 2*inner(id(un),id(v_)) - inner(id(un_1),id(v_))); //5
-
+        ////////////////////////////////////////////////////
+        //          Newmark beta-model for dttun          //
+        ////////////////////////////////////////////////////
+        at_ += integrate( _range = elements(mesh_), _expr= rho / dt / dt / beta * trans(idt(u_))*id(v_)
+                                                    + lambda * inner(grad(u_), grad(v_)) + 2 * mu * trace(sym(gradv(u_))*trans(sym(grad(v_)))));
+        lt_ += integrate( _range = elements(mesh_), _expr= inner(f,id(v_)) + rho / beta / dt / dt * inner(id(un) + dt * id(dtun), id(v_)));
+        lt_ += integrate( _range = elements(mesh_), _expr= (1 - 2*beta)/(2*beta) * inner(f,id(v_))
+                                                    - (1 - 2*beta)/(2*beta) * lambda * inner(gradv(un),grad(v_))
+                                                    - (1 - 2*beta)/(beta) * mu * trace(sym(grad(un)*trans(sym(grad(v_))))));
+        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= 1/(2*beta) *inner(g, id(v_))); // = (1 + (1 - 2*beta)/(2*beta) * inner(g, id(v_)));
         at_.solve( _rhs = lt_, _solution = u_ );
 
         this->exportResults();
 
+        ////////////////////////////////////////////////////
+        //         Newmark gamma-model for dtun           //
+        ////////////////////////////////////////////////////
         at_.zero();
         lt_.zero();
 
+        at_ += integrate( _range = elements(mesh_), _expr = trans(idt(dtun)) * id(v_) );
+        lt_ += integrate( _range = elements(mesh_), _expr = dt * (1-gamma) / rho * inner(f,id(v_)) );
+        lt_ += integrate( _range = elements(mesh_), _expr = - dt * (1-gamma) / rho * (lambda * inner(gradv(un),grad(v_)) - 2*mu*trace(sym(gradv(un))*trans(sym(grad(v_))))));
+        lt_ += integrate( _range = elements(mesh_), _expr = dt * gamma / rho * (inner(f,id(v_)) - (lambda * inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_)))))));
+        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = 1/rho * inner(g, id(v_)) );
+
+        at_.solve( _rhs = lt_, _solution = dtun );
+
+        at_.zero();
+        lt_.zero();
+
+        ////////////////////////////////////////////////////
+        //          Tests at points of interest           //
+        ////////////////////////////////////////////////////
+
+        // At each iteration, evaluate u_ at each point of interest (they are in the Points Group "PointsOfIntererst" in the .geo file)
+        // If the disturbance is not null, than store the iteration number and pursue the time loop
+        // During the exports, backtrace using the iteration number and the time step to evaluate the time it took the disturbance to reach each of the points
         it += 1;
     }
 }
