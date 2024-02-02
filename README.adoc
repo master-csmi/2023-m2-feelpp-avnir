@@ -6,33 +6,53 @@
 Christophe Prud'homme <https://github.com/prudhomm[@prudhomm]>
 v2: 
 
-image:https://github.com/feelpp/2023-m2-feelpp-sonorhc/workflows/CI/badge.svg[CI]
+## Dynamic Linear Elasticity
 
-This repository provides a basic starting point for a {feelpp} application including:
+One part of this repository is the implementation of the dynamic linear elasticity problem. The mathematical framework as well as the explanation concerning the implementation are visible on the internet page linked to this repo (cf link on the right).
 
-- [x] {feelpp} applications in {cpp} to use {feelpp} and {feelpp} toolboxes in `src`
-- [x] documentation using asciidoc and antora
-- [x] python {feelpp} notebooks that can be downloaded from the documentation
-- [x] continuous integration including tests for the {cpp} applications
-- [x] docker image generation for the project
+In other to reproduce the results, one can launch the following commands from the project's root after building it:
+```bash
+cd build/default/src &&
+./feelpp_fs_elasticity --config-file ../../../src/cases/elastic/elastic.cfg
+```
 
-The documentation for 2023-m2-feelpp-sonorhc is available at link:https://feelpp.github.io/2023-m2-feelpp-sonorhc[here] and you can build on it for your project by enabling the link:https://docs.github.com/en/pages[github pages] for your repository.
+This will launch the 2D case. In order to change to the 3D implementation of the physical test led by sonorhc, one will have to change the following line in the `elastic.json` configuration file to pivot onto the right .geo file:
 
-== Renaming the project
+```json
+"Meshes": {
+    "elastic": {
+        "Import": {
+            "filename": "$cfgdir/square.geo",
+            "partition": 0,
+            "h": 0.02
+        }
+    }
+}
+```
 
-By default the project is named  `2023-m2-feelpp-sonorhc` if you cloned the repository `feelpp/2023-m2-feelpp-sonorhc`.
-However if you used the previous repository as a template, then the project is renamed using the name of the repository using the script `rename.sh` at the initialization of the repository.
-If the name does not suit you, you can change it again using the script `rename.sh` and providing the new name as argument.
+has to be changed into :
 
-WARNING: the script `rename.sh` will rename the project however some url might be set properly if you rename the project yourself. You need to check the following files: `docs/site.yml` and `docs/package.json` and fix the urls after the rename process is done.
+```json
+"Meshes": {
+    "elastic": {
+        "Import": {
+            "filename": "$cfgdir/plaque.geo",
+            "partition": 0,
+            "h": 0.02
+        }
+    }
+}
+```
 
-== Updating the {project} version
+And the following constant also has to be changed from:
+```cpp
+inline const int FEELPP_DIM=2;
+inline const int FEELPP_ORDER=2;
+```
+to
+```cpp
+inline const int FEELPP_DIM=3;
+inline const int FEELPP_ORDER=2;
+```
 
-The version of the project is defined in the files `CMakeLists.txt`, `docs/antora.yml` and `docs/package.json`. 
-You need to update with the same version in all files.
-
-== Release process
-
-- [x] update the version in CMakeLists.txt
-- [x] update the version in docs/antora.yml
-- [x] commit the changes with the message "Release vx.y.z". At this point the CI will generate the docker image and push it to docker hub
+After execution (using the same commands as before), the results are stored in the feelpp database as an ensight folder, which location is printed in the terminal at the end of the execution, which can be visualized using Paraview and its `Glyph` or `Warp by Vector` filters (Filters -> Alphabetical -> Glyph or Warp by Vector ).
