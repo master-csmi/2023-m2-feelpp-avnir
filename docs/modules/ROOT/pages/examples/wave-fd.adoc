@@ -425,7 +425,7 @@ print(U.shape)
 
 We use the library plotly to visualize the solution.
 
-[%dynamic%raw%open,python]
+[%dynamic,python]
 ----
 import numpy as np
 import plotly.graph_objs as go
