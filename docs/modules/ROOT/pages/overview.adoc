@@ -38,12 +38,22 @@ $ cmake --build --preset default # <2>
 $ cmake --build --preset default -t install # <3>
 $ ctest --preset default # <4>
 $ cmake --build --preset default -t package # <5>
+$ python -m venv .venv # <6>
+$ source .venv/bin/activate # <7>
+$ python -m pip install -r requirements.txt # <8>
+$ CXX=clang++ pip3 wheel --no-deps --wheel-dir dist . # <9>
+$ python -m pip install dist/*.whl # <10>
 ----
 <1> Configure the project
 <2> Build the project
 <3> Install the project
 <4> Run the tests
 <5> Package the project
+<6> Create a virtual environment
+<7> Activate the virtual environment
+<8> Install the python dependencies
+<9> Create a wheel of the project
+<10> Install the wheel
 
 == How to start documenting your work
 
