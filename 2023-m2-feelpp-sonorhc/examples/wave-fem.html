@@ -151,7 +151,7 @@ MathJax.Hub.Config({
     <a class="nav-link" href="../research/index.html">Theoretical Research</a>
 <ul class="nav-list">
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="../research/abstract.html">Abstract</a>
+    <a class="nav-link" href="../research/wave_equation.html">Wave equation</a>
   </li>
   <li class="nav-item" data-depth="2">
     <a class="nav-link" href="../research/fems.html">Spectral element methods</a>
@@ -449,7 +449,9 @@ c \frac{\Delta t}{h} &amp;\leq CFL \\
 <h2 id="_implementation"><a class="anchor" href="#_implementation"></a>2. Implementation</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_test_case_square_domain"><a class="anchor" href="#_test_case_square_domain"></a>2.1. Test Case : Square Domain</h3>
+<h3 id="_test_cases"><a class="anchor" href="#_test_cases"></a>2.1. Test Cases</h3>
+<div class="sect3">
+<h4 id="_square_domain"><a class="anchor" href="#_square_domain"></a>2.1.1. Square Domain</h4>
 <div class="paragraph">
 <p>For testing purposes, we set the following parameters:</p>
 </div>
@@ -650,25 +652,156 @@ void Wave&lt;Dim, Order&gt;::timeLoop()
 }</code></pre>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_execute_the_code"><a class="anchor" href="#_execute_the_code"></a>2.1.1. Execute the code</h4>
+<div class="sect4">
+<h5 id="_execute_the_code"><a class="anchor" href="#_execute_the_code"></a>Execute the code</h5>
 <div class="paragraph">
 <p>In order to execute the code, one has to build the project using the default setting. Then, when located at the root of the repository, one can execute the following command:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd build/default/src &amp;&amp;
-./feelpp_2mfs_laplacian --config-file ../../../src/cases/wave/square2d/squared2d.cfg</code></pre>
+./feelpp_fs_wave --config-file ../../../src/cases/wave/square2d/squared2d.cfg</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>The results are automatically exported to the main feelppdb database, a folder which location is printed in the terminal at the end of the execution. The results can be visualized by importing them into paraview.</p>
 </div>
-<div class="imageblock">
+<div class="videoblock">
+<div class="title">Results of FEM on the testcase</div>
 <div class="content">
-<img src="../_images/square-fem.png" alt="square fem" width="600px">
+<iframe width="1216" height="540" src="https://www.youtube.com/embed/zfkrLn5-4qY?rel=0" frameborder="0" allowfullscreen></iframe>
 </div>
-<div class="title">Figure 1. Results of FEM on our testcase</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_urban_area"><a class="anchor" href="#_urban_area"></a>2.1.2. Urban Area</h4>
+<div class="paragraph">
+<p>We can also test the code on a more complex domain, such as the urban area.
+Here we have a geometry of an urban area with the following dimension
+\(170 \times 200 \times 60\).</p>
+</div>
+<div class="paragraph">
+<p>In this case, we set the following parameters :</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\begin{align}
+\rho(x,y,z) &amp;= 1 \\
+c(x,y,z) &amp;= 343 \\
+s(x,y,z,t) &amp;= 0 \\
+g(x,y,z,t) &amp;= 0 \\
+u_0(x,y,z) &amp;= \exp(-((x-100.0)^2+(y-85.0)^2+(z-25.0)^2)/(2*0.5^2)) \\
+w_0(x,y,z) &amp;= 0
+\end{align}\]
+</div>
+</div>
+<div class="paragraph">
+<p>These are defined in the associated json file as follows:
+.JSON Congiguration File</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+    "Name": "Doua",
+    "ShortName": "Doua",
+    "Models": {
+        "wave": {
+            "name": "Omega"
+        }
+    },
+    "Meshes": {
+        "wave": {
+            "Import": {
+                "filename": "$cfgdir/Doua_phy_names_hplus.geo",
+                "partition": 0,
+                "h": 0.5
+            }
+        }
+    },
+    "Spaces": {
+        "wave": {
+            "Domain": {
+
+
+            }
+        }
+    },
+    "TimeStepping":
+    {
+        "wave" :{
+            "steady": false,
+            "order" : 2,
+            "start": 0.0,
+            "end": 4,
+            "step": 0.01
+        }
+    },
+    "InitialConditions": {
+        "wave": {
+            "pressure": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.0"
+                    }
+                }
+            },
+            "velocity": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "1.0*exp(-((x-100.0)^2+(y-85.0)^2+(z-25.0)^2)/(2*0.5^2)):x:y:z"
+                    }
+                }
+            }
+        }
+    },
+    "BoundaryConditions": {
+        "wave": {
+            "flux": {
+                "Gamma": {
+                    "expr": "0.0"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "wave": {
+            "c": 343,
+            "rho": "1.0",
+            "mu": "117649.0",
+            "s": "0.0"
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We use the same C++ code as in the previous test case (Square Domain), with the exception of the value of the constant <code>FEELPP_DIM</code> in the source code (<code>wave.hpp</code>). In the previous test case, it was set to <code>2</code>, reflecting a two-dimensional scenario. In this case, however, we must set it to <code>3</code> since we are working in a three-dimensional space.</p>
+</div>
+<div class="paragraph">
+<p>We can remark that \(mu = 117649\). It is because of CFL condition.
+As reminder, \(\Delta t \leq CFL \frac{h}{c}\). We chose \(CFL=1\)
+and \(\Delta t = \frac{h}{c}\)</p>
+</div>
+<div class="sect4">
+<h5 id="_execute_the_code_2"><a class="anchor" href="#_execute_the_code_2"></a>Execute the code</h5>
+<div class="paragraph">
+<p>To execute the code, one has to build the project using the default
+setting as explained in the previous test case. Then one can execute
+the following command :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd build/default/src &amp;&amp;
+./feelpp_fs_wave --config-file ../../../src/cases/wave/urban_area/Doua_phy_names_hplus.cfg</code></pre>
+</div>
+</div>
+<div class="videoblock">
+<div class="title">Results of FEM on the testcase</div>
+<div class="content">
+<iframe width="1216" height="540" src="https://www.youtube.com/embed/p41gEtOZodI?rel=0" frameborder="0" allowfullscreen></iframe>
+</div>
+</div>
 </div>
 </div>
 </div>

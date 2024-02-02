@@ -150,7 +150,7 @@ MathJax.Hub.Config({
     <a class="nav-link" href="index.html">Theoretical Research</a>
 <ul class="nav-list">
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="abstract.html">Abstract</a>
+    <a class="nav-link" href="wave_equation.html">Wave equation</a>
   </li>
   <li class="nav-item is-current-page" data-depth="2">
     <a class="nav-link" href="fems.html">Spectral element methods</a>
@@ -396,8 +396,7 @@ p_h(x,0) &amp;= 0 \qquad \forall x \in \Omega, \\
 <p>The resulting mass matrix becomes densely populated as the simulation space expands and the order of approximation increases. This poses a double problem: a high computational load for the inversion of the matrix at each time step, and substantial data storage if we choose to retain the inverse of the mass matrix. These constraints underline the need for a more efficient method of handling large matrices in the context of acoustic simulation.</p>
 </div>
 <div class="paragraph">
-<p>One solution to this problem is the use of Legendre-Gauss-Lobatto quadrature points for interpolation and the calculation of matrices by Gauss-Lobatto numerical integration, leading to mass condensation and enabling the use of an explicit scheme. This method is known as the "spectral finite element method". So the important point of this method is to make the interpolation points coincide with the quadrature points of the integration formulas.
-quadrature points of the integration formulas.</p>
+<p>One solution to this problem is the use of Legendre-Gauss-Lobatto quadrature points for interpolation and the calculation of matrices by Gauss-Lobatto numerical integration, leading to mass condensation and enabling the use of an explicit scheme. This method is known as the "spectral finite element method". So the important point of this method is to make the interpolation points coincide with the quadrature points of the integration formulas.</p>
 </div>
 </div>
 </div>
@@ -406,7 +405,7 @@ quadrature points of the integration formulas.</p>
 <h2 id="_the_spectral_mixed_finite_element_method"><a class="anchor" href="#_the_spectral_mixed_finite_element_method"></a>3. The spectral mixed finite element method</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>We will reduce the storage of the stiffness matrix involved in the spectral finite element method by using a mixed form of equation by using a mixed form of our equation.</p>
+<p>We will reduce the storage of the stiffness matrix involved in the spectral finite element method by using a mixed form of equation.</p>
 </div>
 <div class="sect2">
 <h3 id="_setting_up_a_mixed_formulation"><a class="anchor" href="#_setting_up_a_mixed_formulation"></a>3.1. Setting up a mixed formulation</h3>

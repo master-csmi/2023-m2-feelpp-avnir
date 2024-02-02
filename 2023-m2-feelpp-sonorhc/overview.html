@@ -150,7 +150,7 @@ MathJax.Hub.Config({
     <a class="nav-link" href="research/index.html">Theoretical Research</a>
 <ul class="nav-list">
   <li class="nav-item" data-depth="2">
-    <a class="nav-link" href="research/abstract.html">Abstract</a>
+    <a class="nav-link" href="research/wave_equation.html">Wave equation</a>
   </li>
   <li class="nav-item" data-depth="2">
     <a class="nav-link" href="research/fems.html">Spectral element methods</a>
@@ -314,7 +314,12 @@ The steps are as follows:</p>
 $ cmake --build --preset default <i class="conum" data-value="2"></i><b>(2)</b>
 $ cmake --build --preset default -t install <i class="conum" data-value="3"></i><b>(3)</b>
 $ ctest --preset default <i class="conum" data-value="4"></i><b>(4)</b>
-$ cmake --build --preset default -t package <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+$ cmake --build --preset default -t package <i class="conum" data-value="5"></i><b>(5)</b>
+$ python -m venv .venv <i class="conum" data-value="6"></i><b>(6)</b>
+$ source .venv/bin/activate <i class="conum" data-value="7"></i><b>(7)</b>
+$ python -m pip install -r requirements.txt <i class="conum" data-value="8"></i><b>(8)</b>
+$ CXX=clang++ pip3 wheel --no-deps --wheel-dir dist . <i class="conum" data-value="9"></i><b>(9)</b>
+$ python -m pip install dist/*.whl <i class="conum" data-value="10"></i><b>(10)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -338,6 +343,26 @@ $ cmake --build --preset default -t package <i class="conum" data-value="5"></i>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
 <td>Package the project</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Create a virtual environment</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>Activate the virtual environment</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="8"></i><b>8</b></td>
+<td>Install the python dependencies</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="9"></i><b>9</b></td>
+<td>Create a wheel of the project</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="10"></i><b>10</b></td>
+<td>Install the wheel</td>
 </tr>
 </table>
 </div>

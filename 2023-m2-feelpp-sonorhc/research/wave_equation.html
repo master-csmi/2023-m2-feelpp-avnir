@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Wave equation in unbounded domains :: 2023 M2 Feelpp Sonorhc</title>
+    <link rel="canonical" href="https://feelpp.github.io/2023-m2-feelpp-sonorhc/2023-m2-feelpp-sonorhc/research/wave_equation.html">
+    <meta name="generator" content="Antora 3.1.7">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" href="../../_/img/favicon.ico" type="image/x-icon">
+<script>!function(l,p){if(l.protocol!==p&&l.host=="docs.antora.org"){l.protocol=p}else if(/\.gitlab\.io$/.test(l.host)){l.replace(p+"//docs.antora.org"+l.pathname.substr(l.pathname.indexOf("/",1))+l.search+l.hash)}}(location,"https:")</script>
+
+<script src="../../_/js/vendor/tabs-block-extension.js"></script>
+<script src="../../_/js/vendor/tabs-block-behavior.js"></script>
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+
+  TeX: {
+      Macros: {
+      bold: ["{\\bf #1}",1],
+      calTh: "{\\mathcal{T}_h}",
+      card: ["{\\operatorname{card}(#1)}",1],
+      card: ["{\\operatorname{card}(#1)}",1],
+      Ck: ["{\\mathcal{C}^{#1}}",1],
+      deformt: ["{\\mathbf{\\varepsilon(#1)}}",1],
+      diam: "{\\operatorname{diam}}",
+      dim: ["{\\operatorname{dim}(#1)}",1],
+      disp: ["{\\mathbf{#1}}",1],
+      domain: "{\\Omega}",
+      ds: "",
+      essinf: "{\\operatorname{ess}\\, \\operatorname{inf}}",
+      F:"{\\mathcal{F}}",
+      geo: "{\\mathrm{geo}}",
+      Ich: ["{\\mathcal{I}^{#1}_{c,h}#2}",2],
+      Id: "{\\mathcal{I}}",
+      Ilag: ["{\\mathcal{I}^{\\mathrm{lag}}_{#1}}",1],
+      jump: ["{[\\![ #1 ]\\!]}",1],
+      n:"{\\mathbf{n}}",
+      Ne: "{N_{\\mathrm{e}}}",
+      Next: "{\\mathrm{n}}",
+      nf: "{n_f}",
+      ngeo: "{n_{\\mathrm{geo}}}",
+      Nma: "{N_{\\mathrm{ma}}}",
+      NN: "{\\mathbb N}",
+      Nno: "{N_{\\mathrm{no}}}",
+      Nso: "{N_{\\mathrm{so}}}",
+      opdim: "{\\operatorname{dim}}",
+      p: "{\\mathrm{p}}",
+      P:"{\\mathcal{P}}",
+      Pch: ["{P^{#1}_{c,h}}",1],
+      Pcho: ["{P^{#1}_{c,h,0}}",1],
+      Pk: ["{\\mathcal{P}^{#1}}",1],
+      poly: ["{\\mathbb{#1}",1],
+      poly: ["{\\mathbb{#1}}",1],
+      prect: ["{\\left\\(#1\\right\\)}",1],
+      q:"{\\mathbf{q}}",
+      Qch: ["{Q^{#1}_{c,h}}",1],
+      Qk: ["{\\mathcal{Q}^{#1}}",1],
+      R: ["{\\mathbb{R}^{#1}}",1],
+      RR: "{\\mathbb R}",
+      set: ["{\\left\\{#1\\right\\}}",1],
+      stresst: ["{\\mathbf{\\sigma(#1)}}",1],
+      T:"{\\mathcal{T}}",
+      tr: "{\\operatorname{tr}}",
+      v:"{\\mathbf{v}}",
+      vertiii: ["\\left\\vert\\kern-0.25ex\\left\\vert\\kern-0.25ex\\left\\vert #1 \\right\\vert\\kern-0.25ex\\right\\vert\\kern-0.25ex\\right\\vert",1]
+  },
+  extensions: ["mhchem.js"] 
+  }
+});
+</script>
+<!--<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-MML-AM_CHTML"></script>-->
+<!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML' async></script> -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML'></script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.6.0/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>-->
+
+<!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css" integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.js" integrity="sha384-jmxIlussZWB7qCuB+PgKG1uLjjxbVVIayPJwi6cG6Zb4YKq0JIw+OMnkkEC7kYCq" crossorigin="anonymous"></script>-->
+<script>var uiRootPath = '../../_'</script>
+
+  </head>
+  <body class="article">
+<header class="header">
+    <nav class="navbar navbar-expand-sm bg-dark navbar-dark navbar-template-project" style="border-top: 4px solid #9E9E9E">
+        <div class="navbar-brand">
+            <div class="navbar-item feelpp-logo">
+                <a href="https://feelpp.github.io/2023-m2-feelpp-sonorhc">2023 M2 Feelpp Sonorhc</a>
+            </div>
+            <button class="navbar-burger" data-target="topbar-nav">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+
+        <div id="topbar-nav" class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <a href="https://docs.feelpp.org/">Documentation Reference</a>
+                </div>
+                <div class="navbar-item has-dropdown is-hoverable download-item">
+                    <div class="navbar-item"><a href="https://docs.feelpp.org/user/latest/install/index.html" class="download-btn">Get Feel++</a></div>
+                </div>
+                <div class="navbar-item">
+                    <a class="navbar-brand"  href="https://www.cemosis.fr">
+                        <img class="cemosis-logo"  src="../../_/img/cemosis-logo.svg" alt="Cemosis logo"/>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+<div class="body">
+<a href="#" class="menu-expand-toggle"></a>
+<div class="nav-container" data-component="2023-m2-feelpp-sonorhc" data-version="">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">Template Project</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Introduction</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../quickstart.html">Quickstart</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../overview.html">Overview</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Theoretical Research</a>
+<ul class="nav-list">
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="wave_equation.html">Wave equation</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="fems.html">Spectral element methods</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="pml.html">Perfectly Matched Layer</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../examples/index.html">Use Cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../examples/wave-fd.html">Acoustic Wave FDTD</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../examples/wave-cfpde.html">Acoustic Wave CFPDES</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../examples/wave-fem.html">Acoustic Wave FEM</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../examples/elasticity-fem.html">Elasticity FEM</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Setting up the development Environment</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/cmake.html">CMake Environment</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/antora.html">Antora Environment</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/vscode.html">VS Code Integration</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/githubactions.html">GitHub Actions</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/rename.html">Renaming the Project</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="../env/jupyter.html">Jupyter Notebook</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Template Project</span>
+    <span class="version"></span>
+  </div>
+  <ul class="components">
+      <li class="component is-current">
+        <a class="title" href="../index.html">Template Project</a>
+      </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+  <button class="nav-toggle"></button>
+    <a href="../index.html" class="home-link"></a>
+  <nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Template Project</a></li>
+    <li><a href="index.html">Theoretical Research</a></li>
+    <li><a href="wave_equation.html">Wave equation</a></li>
+  </ul>
+</nav>
+
+  
+    <div class="edit-this-page"><a href="https://github.com/master-csmi/2023-m2-feelpp-sonorhc/edit/master/docs/modules/ROOT/pages/research/wave_equation.adoc">Edit this Page</a></div>
+  
+  <div class="page-downloads">
+  <span class="label">Download as</span>
+  <ul class="download-options">
+    <li>
+      <a onclick="print(this)" href="#" data-toggle="tooltip" data-placement="left" title="Print to PDF"
+         class="pdf-download">
+        <img class="pdf-file-icon icon" src="../../_/img/pdf.svg"/> .pdf
+      </a>
+    </li>
+  </ul>
+</div>
+</div>
+
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Wave equation in unbounded domains</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Modeling and numerical simulation of wave propagation problems are at the heart of many industrial applications, such as aeronautics or oil exploration. In these various applications, the propagation domain is most often infinite in one direction or very large compared to the wavelength of the signals one wants to reproduce. This leads to the challenge of numerically solving a system of partial differential equations set in an unbounded domain.</p>
+</div>
+<div class="paragraph">
+<p>To circumvent the infinity, one approach is to define a finite-sized computation box, tailored to the area of particular interest. Once the computation box is defined, the wave propagation problem can be numerically solved using methods based on approximating the solution at various nodes of a given grid, such as finite difference methods or finite element methods. Since the outer edges of the computation box are artificial for the physical problem, they must not generate spurious reflections within the computation domain, so as not to distort the numerical results obtained.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_numerical_modeling_of_artificial_edges"><a class="anchor" href="#_numerical_modeling_of_artificial_edges"></a>1. Numerical Modeling of Artificial Edges</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_dirichlet_to_neumann_operator_dtn"><a class="anchor" href="#_dirichlet_to_neumann_operator_dtn"></a>1.1. Dirichlet-to-Neumann Operator (DtN)</h3>
+<div class="paragraph">
+<p>One way to numerically model artificial boundaries is to represent them using the DtN (Dirichlet-to-Neumann) operator, which exactly expresses the transmission of waves across an interface. In the case of artificial boundaries, this operator thus ensures the perfect transmission of the wave from the inside to the outside of the computation box without any reflection within the domain.</p>
+</div>
+<div class="paragraph">
+<p>However, since this operator is global, its discretization introduces a dense matrix, breaking the sparse structure of the system. Consequently, the computational costs incurred by using this operator are extremely high.</p>
+</div>
+<div class="paragraph">
+<p>To reduce reflections from artificial boundaries while preserving the sparse structure of the discretization matrices, we can use Absorbing Boundary Conditions (ABC) or Perfectly Matched Layers (PML).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_absorbing_boundary_conditions_abc"><a class="anchor" href="#_absorbing_boundary_conditions_abc"></a>1.2. Absorbing Boundary Conditions (ABC)</h3>
+<div class="paragraph">
+<p>The idea with ABCs is to impose a specific boundary condition on the outer edges of the computation domain, thereby attenuating reflected waves. This is essentially an approximation of the DtN operator, constructed in such a way as to preserve the sparse structure of the matrices.</p>
+</div>
+<div class="paragraph">
+<p>Unlike PMLs, ABCs are easier to implement when the boundaries of the domain are curved.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_perfectly_matched_layers_pml"><a class="anchor" href="#_perfectly_matched_layers_pml"></a>1.3. Perfectly Matched Layers (PML)</h3>
+<div class="paragraph">
+<p>The concept with PMLs is that an additional layer is added beyond the artificial boundary, within which the wave is absorbed due to the introduction of a dissipation term, without reflecting at the interface.</p>
+</div>
+<div class="paragraph">
+<p>PMLs, however, are difficult to implement when the boundaries of the computational domain are curved. To overcome these drawbacks, new formulations such as C-PML (Convolutional Perfectly Matched Layer) have been proposed. However, these do not eliminate all instabilities and are still not suited for curved boundaries.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_numerical_methods_for_solving_the_wave_equation"><a class="anchor" href="#_numerical_methods_for_solving_the_wave_equation"></a>2. Numerical Methods for Solving the Wave Equation</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>For numerical solving, there are several methods to choose from. Industrial computational codes generally use finite difference methods or finite element methods.</p>
+</div>
+<div class="paragraph">
+<p>Finite difference methods, although easy to implement, rely on calculating the solution at various nodes of a regular grid, which does not allow for the consideration of complex geometries. For this project, we have decided to use finite element methods, which do not have this disadvantage.</p>
+</div>
+<div class="sect2">
+<h3 id="_classical_finite_elements"><a class="anchor" href="#_classical_finite_elements"></a>2.1. Classical Finite Elements</h3>
+<div class="paragraph">
+<p>Using a classical finite element method results in a sparse mass matrix, but one that is not trivially invertible. These matrices can, in some practical cases, contain millions of entries, making their inversion a bottleneck, especially for real-world applications.</p>
+</div>
+<div class="paragraph">
+<p>To address the issue outlined in the previous section, one could use a mass lumping method that makes the mass matrix diagonal. However, this technique compromises the convergence order of the scheme.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_spectral_finite_elements"><a class="anchor" href="#_spectral_finite_elements"></a>2.2. Spectral Finite Elements</h3>
+<div class="paragraph">
+<p>Instead of a classical finite element method, one could use the spectral finite element method, which allows obtaining a diagonal mass matrix without compromising the convergence order of the scheme, by using Gauss-Lobatto quadrature points and weights.</p>
+</div>
+<div class="paragraph">
+<p>The main drawback of this method is that it relies on 2D quadrangular and 3D parallelepipedal meshes. Therefore, it is difficult to mesh domains with arbitrary geometries.</p>
+</div>
+<div class="paragraph">
+<p>In this project, this is the method we have chosen to use.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_discontinuous_galerkin_methods_dg"><a class="anchor" href="#_discontinuous_galerkin_methods_dg"></a>2.3. Discontinuous Galerkin Methods (DG)</h3>
+<div class="paragraph">
+<p>This method does not have the drawbacks of the previous methods. Indeed, it allows the use of triangular meshes in 2D and tetrahedral meshes in 3D, and the mass matrix is by construction block-diagonal, leading to an almost explicit representation of the solution.</p>
+</div>
+<div class="paragraph">
+<p>There are various DG methods described in the literature. We can particularly mention the Interior Penalty Discontinuous Galerkin (IPDG) method, also known as Symmetric Interior Penalty (SIP), which is known to be stable and consistent, ensuring the convergence order of the scheme.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_references"><a class="anchor" href="#_references"></a>3. References</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>[ref-1] Véronique Duprat. Conditions aux limites absorbantes enrichies pour l’équation
+des ondes acoustiques et l’équation d’Helmholtz. Analyse numérique [math.NA].
+Université de Pau et des Pays de l’Adour, 2011. Français. NNT : . tel-00817506</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer" style="border-top: 2px solid #e9e9e9; background-color: #fafafa; padding-bottom: 2em; padding-top: 2em;">
+    <div class="container" style="display: flex; flex-direction: column; align-items: center; gap: 0.5em;">
+        <div>
+            <a href="https://www.cemosis.fr">
+                <img src="../../_/img/cemosis-logo.svg" alt="Cemosis logo" height="50">
+            </a>
+        </div>
+        <span style="font-size: 0.8rem; color: #9e9e9e">© 2024 <a href="https://www.cemosis.fr" style="text-decoration: underline;">Cemosis</a>, Université de Strasbourg</span>
+    </div>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+
+
+<script async src="../../_/js/vendor/fontawesome-icon-defs.js"></script>
+<script async src="../../_/js/vendor/fontawesome.js"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+
+
+<script type="text/javascript">
+function toggleFullScreen() {
+   var doc = window.document;
+   var docEl = doc.documentElement;
+
+   var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+   var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+   if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+       requestFullScreen.call(docEl);
+   }
+   else {
+       cancelFullScreen.call(doc);
+   }
+}
+</script>
+  </body>
+</html>
