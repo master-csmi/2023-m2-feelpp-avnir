@@ -37,6 +37,7 @@
 #include <feel/feelvf/vf.hpp>
 #include <feel/feelvf/measure.hpp>
 #include <feel/feelts/bdf.hpp>
+#include <feel/feeldiscr/sensors.hpp>
 
 namespace Feel
 {
@@ -155,6 +156,9 @@ private:
     exporter_ptrtype e_;
     nl::json meas_;
     expr_type mu, rho, s, g;
+    node_type n;
+    form1_type l_dirac_;
+    bool dirac;
 };
 
 // Constructor
@@ -223,6 +227,19 @@ void Wave<Dim, Order>::initialize()
     rho = expr(Rho);
     s = expr(S);
     g = expr(G);
+    // Dirac
+    if ( specs_["/Parameters/wave"_json_pointer].contains("dirac") )
+    {
+        auto coords = specs_["/Parameters/wave/dirac"_json_pointer].get<std::vector<double>>();
+        n = node_type(coords.size());
+        dirac = true;
+        for (int i=0; i<coords.size(); i++)
+            n(i) = coords[i];
+        auto s_dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S"); // "S" is the name of the sensor
+        l_dirac_ = form1( _test = Xh_, _vector = s_dirac->containerPtr() );
+    }
+    else
+        dirac = false;
 
     // Compute u1_
     a_.zero();
@@ -233,6 +250,13 @@ void Wave<Dim, Order>::initialize()
             + expr(bdf_->timeStep()) * 1/mu * idv(w0_) * id(v_)
             + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * s * id(v_) / 2
             + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * -1/mu * inner(gradv(u0_),gradv(v_)) /2);
+    // add dirac
+    if ( dirac )
+    {
+        auto tmp_l = l_dirac_;
+        tmp_l.scale(bdf_->timeStep() * bdf_->timeStep() / 2);
+        l_ += tmp_l;
+    }
     l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * 1/rho * g * id(v_) / 2);
     a_.solve( _rhs = l_, _solution = u_ );
 
@@ -293,6 +317,8 @@ void Wave<Dim, Order>::processBoundaryConditions()
 
             l_ += integrate( _range = markedfaces( support( Xh_ ), bc ),
                     _expr = expr( flux ) * id( v_ ) );
+            if ( dirac )
+                l_ += l_dirac_;
         }
     }
 
@@ -343,6 +369,13 @@ void Wave<Dim, Order>::timeLoop()
                           _expr = (1/mu) * (2 * idv(un) - idv(un_1) ) * id(v_)
                           + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * ((-1)/mu) * inner(gradv(un), grad(v_))
                           + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * s * id(v_));
+        // add dirac
+        if ( dirac )
+        {
+            auto tmp_l = l_dirac_;
+            tmp_l.scale(bdf_->timeStep() * bdf_->timeStep() / 2);
+            lt_ += tmp_l;
+        }
         lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * (1/rho) * g * id(v_));
 
         at_.solve( _rhs = lt_, _solution = u_ );
