@@ -3,8 +3,9 @@ We have the original geometry file named "Doua.geo_unrolled". The dimensions of 
 From this original geometry, we have created four physical surfaces:
 - "Sol", representing the ground,
 - "Ext", representing the external boundary,
-- "Batiment", representing the buildings.
-Additionally, we have defined a physical volume named "Int", which encompasses the entire area of interest.
+- "Batiment", representing the buildings,
+- "Gamma", regrouping "Sol", "Ext" and "Batiment".
+Additionally, we have defined a physical volume named "Omega", which encompasses the entire area of interest.
 
 These modifications have been applied in the file "Doua_phy_names.geo_unrolled".
 
