@@ -678,7 +678,7 @@ The template was given in a .step format, which had to be converted to a .geo fi
 image::ROOT:plaque_geo.png[width=600px]
 
 
-The boundary had to consider the holes in the plate, which were modeled as cylinders, and could therefore be properly meshed:
+The boundary had to consider the holes in the plate, which were modeled as cylinders, and could therefore be properly meshed if given the right mesh size (in our configuration file 0.02 was used in order to present suitable results along the complex boundary); this can of course be modified to have the desired accuracy using the json configuration file. The final mesh is the following:
 
 image::ROOT:plaque_trous.png[width=600px]
 
