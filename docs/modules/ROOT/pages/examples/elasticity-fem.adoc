@@ -290,6 +290,275 @@ Finally, we can rewrite the equation as:
 \end{align}
 ++++
 
+== Using the Newmark beta method
+
+In order to assure the stability of our scheme, the final implementation will use the Newmark beta model in order to perform the time integration. The method consists of solving the following two equations for stem:[u_{n+1}] and stem:[\partial_t u_{n+1}] respectively:
+
+[stem]
+++++
+\begin{align}
+\begin{cases}
+    u_{n+1} = u_n + \Delta t \partial_t u_n + \frac{\Delta t^2}{2} \left( (1 - 2 \beta) \partial_{tt} u_n + 2 \beta \partial_{tt} u_{n+1} \right) \\
+    \partial_t u_{n+1} = \partial_t u_n + \Delta t \left( (1 - \gamma) \partial_{tt} u_n + \gamma \partial_{tt} u_{n+1} \right)
+\end{cases}
+\end{align}
+++++
+
+where stem:[\beta] and stem:[\gamma] are parameters of the method.
+Rearraging the terms, we can rewrite the equations as:
+
+[stem]
+++++
+\begin{align}
+\partial_{tt} u_{n+1} = \frac{1}{\beta \Delta t^2} \left( u_{n+1} - u_n - \Delta t \partial_t u_n \right) - \frac{1 - 2 \beta}{2 \beta} \partial_{tt} u_n \\
+\end{align}
+++++
+
+But we already know that stem:[u_{n+1}] and stem:[u_n] are the respective solutions of the following problems:
+
+[stem]
+++++
+\begin{align}
+\begin{cases}
+\rho \partial_{tt} u_{n+1} -  \nabla \cdot \sigma(u_{n+1}) = f \\
+\rho \partial_{tt} u_n -  \nabla \cdot \sigma(u_n) = f
+\end{cases}
+\end{align}
+++++
+
+The first can be expanded as:
+
+[stem]
+++++
+\begin{align}
+\rho \int_\Omega \partial_{tt} u_{n+1} \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx = \int_\Omega f \cdot v \, dx &+ \int_\Gamma g \cdot v \, ds \\
+\rho \int_\Omega \frac{1}{\beta \Delta t^2} \left( u_{n+1} - u_n - \Delta t \partial_t u_n \right) \cdot v \, -\frac{1-2\beta}{2\beta} \partial_{tt} u_n \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+\rho \int_\Omega \frac{1}{\beta \Delta t^2} \left( u_{n+1} - u_n - \Delta t \partial_t u_n \right) \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx = \int_\Omega f \cdot v \, dx &+ \int_\Gamma g \cdot v \, ds + \frac{1-2\beta}{2\beta} \int_\Omega \partial_{tt} u_n \cdot v \, dx \\
+\int_\Omega \frac{\rho}{\beta \Delta t^2} u_{n+1} \cdot v \, dx + \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx = \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds &+ \frac{1-2\beta}{2\beta} \int_\Omega \partial_{tt} u_n \cdot v \, dx \\
++ \frac{\rho}{\beta \Delta t^2} \int_\Omega u_n \cdot v \, dx &+ \frac{\rho}{\beta \Delta t} \int_\Omega \partial_t u_n \cdot v \, dx
+\end{align}
+++++
+
+
+Knowing that stem:[u_n] is also solution to the dynamic linear elasticity problem, we have that:
+
+[stem]
+++++
+\begin{align}
+\rho \int_\Omega \partial_{tt} u_n \cdot v \, dx + \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+\rho \int_\Omega \partial_{tt} u_n \cdot v \, dx &= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds - \int_\Omega \sigma(u_n) : \varepsilon(v) \, dx \\
+\rho \int_\Omega \partial_{tt} u_n \cdot v \, dx &= \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu\varepsilon(u_n) : \varepsilon(v) \, dx + \int_\Gamma g \cdot v \, ds \\
+\int_\Omega \partial_{tt} u_n \cdot v \, dx &= \frac{1}{\rho} \int_\Omega f \cdot v \, dx - \frac{1}{\rho} \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \frac{1}{\rho} \int_\Gamma g \cdot v \, ds
+\end{align}
+++++
+
+Which leads us to the equation:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \frac{\rho}{\beta \Delta t^2} u_{n+1} \cdot v \, dx &+ \int_\Omega \sigma(u_{n+1}) : \varepsilon(v) \, dx = \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{\rho}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \rho \frac{1-2\beta}{2\beta} \int_\Omega \partial_{tt} u_n \cdot v \, dx \\
+&= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{\rho}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \frac{1-2\beta}{2\beta} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right)
+\end{align}
+++++
+
+Finally we have the form:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \frac{\rho}{\beta \Delta t^2} u_{n+1} \cdot v \, dx &+ \int_\Omega \lambda(\nabla u_{n+1})(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_{n+1}) \varepsilon(v)^T \right) \, dx \\ &
+= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{\rho}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \rho \frac{1-2\beta}{2\beta} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right)
+\end{align}
+++++
+
+
+=== Computing the initial displacement fields
+
+The last equation can be used in order to compute stem:[u_1] since the initial displacement field stem:[u_0] and its velocity are known as equal to zero. We can then define the initial displacement field stem:[u_1] as the solution of the following problem:
+
+[stem]
+++++
+\begin{align}
+\frac{\rho}{\beta \Delta t^2} \int_\Omega u_1 \cdot v \, dx &+ \int_\Omega \lambda(\nabla u_1)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_1) \varepsilon(v)^T \right) \, dx = \int_\Omega f_0 \cdot v \, dx + \int_\Gamma g \cdot v \, ds \\
+&+ \frac{1 - 2\beta}{2\beta} \int_\Omega f \cdot v \, dx + \frac{1 - 2\beta}{2\beta} \int_\Gamma g \cdot v \, ds \\
+&- \frac{1 - 2\beta}{2\beta} \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx
+\end{align}
+++++
+
+But in order to start iterating over the time steps, we also need to compute and store the velocities of our displacement fields, starting by computing stem:[\partial_t u_1] thanks to the equation from the Newmark beta method:
+
+[stem]
+++++
+\begin{align}
+\partial_t u_1 &= \partial_t u_0 + \Delta t \left( (1 - \gamma) \partial_{tt} u_0 + \gamma \partial_{tt} u_1 \right) \\
+\partial_t u_1 &= \Delta t \left( (1 - \gamma) \partial_{tt} u_0 + \gamma \partial_{tt} u_1 \right) \\
+\end{align}
+++++
+
+But we have that:
+
+[stem]
+++++
+\begin{align}
+\begin{cases}
+\int_\Omega \partial_{tt} u_0 \cdot v &= \frac{1}{\rho} \int_\Omega f_0 \cdot v \, dx - \frac{1}{\rho} \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx + \frac{1}{\rho} \int_\Gamma g \cdot v \, ds \\
+\int_\Omega \partial_{tt} u_1 \cdot v &= \frac{1}{\rho} \int_\Omega f_1 \cdot v \, dx - \frac{1}{\rho} \int_\Omega \lambda(\nabla u_1)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_1) \varepsilon(v)^T \right) \, dx + \frac{1}{\rho} \int_\Gamma g \cdot v \, ds
+\end{cases}
+\end{align}
+++++
+
+And we already computed stem:[u_1] before, so the following equation can be solved thanks to feel++:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \partial_t u_1 \cdot v &= \Delta t \left( (1 - \gamma) \int_\Omega \partial_{tt} u_0 \cdot v \, dx + \gamma \int_\Omega \partial_{tt} u_1 \cdot v \, dx \right) \\
+\int_\Omega \partial_t u_1 \cdot v &= \Delta t \left(\frac{1 - \gamma }{\rho} \left( \int_\Omega f_0 \cdot v \, dx - \int_\Omega \lambda(\nabla u_0)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_0) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right. \\
+&+ \left.\frac{\gamma}{\rho} \left( \int_\Omega f_1 \cdot v \, dx - \int_\Omega \lambda(\nabla u_1)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_1) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right) \\
+\end{align}
+++++
+
+=== Time discretization / loop
+
+During the time loop, we will also have to compute the velocity stem:[\partial_t u_{n+1}] at each time step in order to be able to use it during the following one. As before, we will first solve for stem:[u_{n+1}] with stem:[partial_t u_n], and use it in order to compute stem:[\partial_t u_{n+1}]:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \partial_t u_{n+1} \cdot v \, dx &= \Delta t \left( (1 - \gamma) \int_\Omega \partial_{tt} u_n \cdot v \, dx + \gamma \int_\Omega \partial_{tt} u_{n+1} \cdot v \, dx \right) \\
+\int_\Omega \partial_t u_{n+1} \cdot v \, dx &= \Delta t \left(\frac{1 - \gamma}{\rho} \left( \int_\Omega f_n \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right. \\
+&+ \left. \frac{\gamma}{\rho} \left( \int_\Omega f_{n+1} \cdot v \, dx - \int_\Omega \lambda(\nabla u_{n+1})(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_{n+1}) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right) \right) \\
+\end{align}
+++++
+
+This value is computed thanks to feel++ and stored in the variable stem:[dtu_n]. It will be used in order to compute stem:[u_{n+2}], here denoted stem:[u_{n+1}], at the following iteration:
+
+[stem]
+++++
+\begin{align}
+\int_\Omega \frac{\rho}{\beta \Delta t^2} u_{n+1} \cdot v \, dx &+ \int_\Omega \lambda(\nabla u_{n+1})(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_{n+1}) \varepsilon(v)^T \right) \, dx \\ &
+= \int_\Omega f \cdot v \, dx + \int_\Gamma g \cdot v \, ds + \frac{\rho}{\beta \Delta t^2} \int_\Omega (u_n + \Delta t \partial_t u_n) \cdot v \, dx \\
+&+ \frac{1-2\beta}{2\beta} \left( \int_\Omega f \cdot v \, dx - \int_\Omega \lambda(\nabla u_n)(\nabla v) + 2\mu \text{Tr} \left( \varepsilon(u_n) \varepsilon(v)^T \right) \, dx + \int_\Gamma g \cdot v \, ds \right)
+\end{align}
+++++
+
+=== Boundary conditions
+
+In order to verify the correctness of our implementation, we will also have to apply the boundary conditions to our problem with respect to the physical experiment conducted by sonorhc. Therefore, we will have to apply the following boundary conditions to our problem:
+
+[stem]
+++++
+\begin{align}
+\begin{cases}
+    u = 0 & \text{on} \ \Gamma \\
+    \sigma \cdot n = 0 & \text{on} \ \Gamma
+\end{cases}
+\end{align}
+++++
+
+Since our metal plate is attached to a rigid support, we can assume that the displacement field stem:[u] is equal to zero on the boundary stem:[\Gamma]. We set stem:[\sigma \cdot n = 0] in order to ensure that no external stress is applied to the boundary of the plate.
+
+=== Implementation of Newmark model using Feel++
+
+Now that the mathematical framework has been defined, we can implement the problem using the finite element library Feel++. This will only be focused on the numerical implementation, the results can be obtained as explained in the next section. We will start by implementing the Newmark beta model in order to compute our initial displacement field stem:[u_1] and its velocity stem:[\partial_t u_1]:
+
+[source, cpp]
+----
+////////////////////////////////////////////////////
+//          Newmark beta-model for dtun           //
+////////////////////////////////////////////////////
+l_.zero();
+a_.zero();
+
+a_ += integrate( _range = elements(mesh_), _expr= rho / time_step / time_step / beta * trans(idt(u_))*id(v_)
+                                            + lambda * inner(grad(u_), grad(v_)) + 2 * mu * trace(sym(grad(u_)*trans(sym(grad(v_))))));
+l_ += f_0;
+l_ += integrate( _range = elements(mesh_), _expr= rho * (1 - 2*beta)/(2*beta) * inner(f,id(v_)) );
+l_ += integrate( _range = elements(mesh_), _expr= - rho * (1 - 2*beta)/(2*beta) * lambda * inner(gradv(u0_),grad(v_))
+                                            - rho * (1 - 2*beta)/(beta) * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_)))));
+l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= (1 + rho * (1-2*beta)/(2*beta) * inner(g, id(v_)))); // = (1 + (1 - 2*beta)/(2*beta) * inner(g, id(v_)));
+
+a_.solve( _rhs = l_, _solution = u_ );
+
+////////////////////////////////////////////////////
+//         Newmark gamma-model for dtun           //
+////////////////////////////////////////////////////
+a_.zero();
+l_.zero();
+
+a_ += integrate( _range = elements(mesh_), _expr= trans(idt(dtun))*id(v_) );
+l_ += f_0; // f_0.scale(time_step*(1-gamma)/rho);
+l_ += integrate( _range = elements(mesh_), _expr= time_step * (1-gamma) / rho *(-lambda*inner(gradv(u0_),grad(v_)) - 2*mu*trace(sym(gradv(u0_))*trans(sym(grad(v_)))) )  );
+l_ += integrate( _range = elements(mesh_), _expr= time_step * gamma / rho * (inner(f,id(v_)) - lambda*inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_))))));
+l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= 1/rho * inner(g, id(v_)) );
+
+a_.solve( _rhs = l_, _solution = dtun );
+----
+
+In the same manner, we will compute the displacement field stem:[u_{n+1}] at each time step using the following code:
+
+[source, cpp]
+----
+// u_ = u_n+1
+// dtun holds the last velocity of the displacement field u
+auto un = bdf_->unknown(0); // un = u_n
+auto un_1 = bdf_->unknown(1);  // un_1 = u_{n-1}
+
+auto dt = expr(bdf_->timeStep());
+
+////////////////////////////////////////////////////
+//          Newmark beta-model for dttun          //
+////////////////////////////////////////////////////
+at_ += integrate( _range = elements(mesh_), _expr= rho / dt / dt / beta * trans(idt(u_))*id(v_)
+                                            + lambda * inner(grad(u_), grad(v_)) + 2 * mu * trace(sym(gradv(u_))*trans(sym(grad(v_)))));
+lt_ += integrate( _range = elements(mesh_), _expr= inner(f,id(v_)) + rho / beta / dt / dt * inner(id(un) + dt * id(dtun), id(v_)));
+lt_ += integrate( _range = elements(mesh_), _expr= (1 - 2*beta)/(2*beta) * inner(f,id(v_))
+                                            - (1 - 2*beta)/(2*beta) * lambda * inner(gradv(un),grad(v_))
+                                            - (1 - 2*beta)/(beta) * mu * trace(sym(grad(un)*trans(sym(grad(v_))))));
+lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= 1/(2*beta) *inner(g, id(v_))); // = (1 + (1 - 2*beta)/(2*beta) * inner(g, id(v_)));
+at_.solve( _rhs = lt_, _solution = u_ );
+this->exportResults();
+
+////////////////////////////////////////////////////
+//         Newmark gamma-model for dtun           //
+////////////////////////////////////////////////////
+at_.zero();
+lt_.zero();
+
+at_ += integrate( _range = elements(mesh_), _expr = trans(idt(dtun)) * id(v_) );
+lt_ += integrate( _range = elements(mesh_), _expr = dt * (1-gamma) / rho * inner(f,id(v_)) );
+lt_ += integrate( _range = elements(mesh_), _expr = - dt * (1-gamma) / rho * (lambda * inner(gradv(un),grad(v_)) - 2*mu*trace(sym(gradv(un))*trans(sym(grad(v_))))));
+lt_ += integrate( _range = elements(mesh_), _expr = dt * gamma / rho * (inner(f,id(v_)) - (lambda * inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_)))))));
+lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = 1/rho * inner(g, id(v_)) );
+
+at_.solve( _rhs = lt_, _solution = dtun );
+----
+
+The values of stem:[u_{n}] and stem:[\partial_t u_{n}] are stored in the variables stem:[un] and stem:[dtun] respectively, and will be used in order to compute stem:[u_{n+1}] and stem:[\partial_t u_{n+1}] at the following iteration. They are automatically updated at each iteration thanks to the bdf structure, serving as result holder.
+
+Finally, we will apply the boundary conditions to our problem using the following code:
+
+[source, cpp]
+----
+template <int Dim, int Order>
+void Elastic<Dim, Order>::processBoundaryConditions()
+{
+    // Boundary Condition Dirichlet
+    auto bc_dir = specs_["/BoundaryConditions/elastic/Dirichlet/Gamma/g/expr"_json_pointer].get<std::string>();
+    std::cout << "BoundaryCondition Dirichlet : " << bc_dir << std::endl;
+    a_+=on(_range=markedfaces(mesh_,"Gamma"), _rhs=l_, _element=u_, _expr=expr<FEELPP_DIM,1>( bc_dir ) );
+
+    // Boundary Condition Neumann
+    auto bc_neu = specs_["/BoundaryConditions/elastic/Neumann/Gamma/pure_traction/g/expr"_json_pointer].get<std::string>();
+    std::cout << "Boundary Condition Neumann : " <<  bc_neu << std::endl;
+    l_ += integrate( _range = markedfaces( mesh_ , "Gamma"), _expr = inner( expr<FEELPP_DIM,1>( bc_neu ), id( v_ )) );
+}
+----
+
 == Implementation using Feel++
 
 Now that the mathematical framework has been defined, we can implement the problem using the finite element library Feel++.
@@ -400,7 +669,7 @@ The results are stored as an ensight format, which can be visualized using Parav
 
 The first test was done on the same square.geo file that was used for the acoustic wave equation, a 2D representation of a square of size 2.
 
-The second one was to study the correctness of the code by comparing the numerical results with measurements taken during a physical experiment. The experiment consisted in hitting a steel plate with a hammer at three different points (F1, F2 and F3), and measuring the time it took for the disturbance / wave to reach points 1 and 2. Here is the setup of the experiment:
+The second one was to study the correctness of the code by comparing the numerical results with measurements taken during a physical experiment. The experiment consisted in hitting a steel plate (mass density rho of 7800 kg/m^3) with a hammer at three different points (F1, F2 and F3), and measuring the time it took for the disturbance / wave to reach points 1 and 2. The Young's modulus and the Poisson's ratio associated to the problem were given to us, and are respectively equal to 210 Gpa = 2.1e11 pa and 0.3. Here is the setup of the experiment:
 
 image::ROOT:choc_plaque.png[width=600px]
 
@@ -409,7 +678,7 @@ The template was given in a .step format, which had to be converted to a .geo fi
 image::ROOT:plaque_geo.png[width=600px]
 
 
-The boundary had to consider the holes in the plate, which were modeled as cylinders, and could therefore be properly meshed:
+The boundary had to consider the holes in the plate, which were modeled as cylinders, and could therefore be properly meshed if given the right mesh size (in our configuration file 0.02 was used in order to present suitable results along the complex boundary); this can of course be modified to have the desired accuracy using the json configuration file. The final mesh is the following:
 
 image::ROOT:plaque_trous.png[width=600px]
 

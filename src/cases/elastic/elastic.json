@@ -36,7 +36,7 @@
             "order" : 2,
             "start": 0.0,
             "end": 0.1,
-            "step": 0.002
+            "step": 0.001
         }
     },
     "InitialConditions": {
@@ -44,7 +44,7 @@
             "externalF": {
                 "Expression": {
                     "Omega": {
-                        "expr": "{0.0,-9.81}"
+                        "expr": "{0.0,0.0}"
                     }
                 }
             },
@@ -59,9 +59,20 @@
     },
     "BoundaryConditions": {
         "elastic": {
-            "Gamma" : {
-                "g" :  {
-                    "expr" : "{0.0,0.0}"
+            "Dirichlet" : {
+                "Gamma" : {
+                    "g" :{
+                        "expr" : "{0.0,0.0}"
+                    }
+                }
+            },
+            "Neumann" : {
+                "Gamma" : {
+                    "pure_traction" : {
+                        "g" :{
+                            "expr" : "{0.0,0.0}"
+                        }
+                    }
                 }
             }
         }
@@ -69,7 +80,7 @@
     "Parameters": {
         "elastic": {
             "E": {
-                "expr": 1000000.0
+                "expr": 210000000000.0
             },
             "nu": {
                 "expr": 0.3
@@ -79,6 +90,12 @@
             },
             "dirac_magintude": {
                 "expr": 1.0
+            },
+            "beta": {
+                "expr": 0.25
+            },
+            "gamma": {
+                "expr": 0.5
             }
         }
     }
