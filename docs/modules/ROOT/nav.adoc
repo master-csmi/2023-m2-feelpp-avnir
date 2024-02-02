@@ -2,7 +2,7 @@
 * xref:quickstart.adoc[]
 * xref:overview.adoc[]
 * xref:research/index.adoc[Theoretical Research]
-** xref:research/abstract.adoc[Abstract]
+** xref:research/wave_equation.adoc[Wave equation]
 ** xref:research/fems.adoc[Spectral element methods]
 ** xref:research/pml.adoc[Perfectly Matched Layer]
 * xref:examples/index.adoc[Use Cases]

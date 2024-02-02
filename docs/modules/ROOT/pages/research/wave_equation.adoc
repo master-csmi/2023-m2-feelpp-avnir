@@ -1,4 +1,4 @@
-= Abstract
+= Wave equation in unbounded domains
 Dieudonné MEDESSI
 
 Modeling and numerical simulation of wave propagation problems are at the heart of many industrial applications, such as aeronautics or oil exploration. In these various applications, the propagation domain is most often infinite in one direction or very large compared to the wavelength of the signals one wants to reproduce. This leads to the challenge of numerically solving a system of partial differential equations set in an unbounded domain.

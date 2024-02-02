@@ -362,6 +362,8 @@ void Wave<Dim, Order>::timeLoop()
     // time loop
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
+        // std::cout << "Time " << bdf_->time() << std::endl;
+
         at_ += integrate( _range = elements(mesh_), _expr = (1/mu) * idt(u_) * id(v_) );
         auto un = bdf_->unknown(0);
         auto un_1 = bdf_->unknown(1);

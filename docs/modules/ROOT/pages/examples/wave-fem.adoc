@@ -1,7 +1,7 @@
 = Wave equation using finite element method
 Ariel DE VORA / Dieudonné MEDESSI / Obèd SABA
 :page-tags: case
-:page-illustration: square-fem.png
+:page-illustration: square2d.0055.png
 :description: We simulate the wave equation using the finite element method
 
 == Problem Statement
@@ -134,7 +134,9 @@ where stem:[CFL] is a number that can be found in the literature and stem:[c] is
 
 == Implementation
 
-=== Test Case : Square Domain
+=== Test Cases
+
+==== Square Domain
 
 For testing purposes, we set the following parameters:
 [stem]
@@ -320,16 +322,134 @@ void Wave<Dim, Order>::timeLoop()
 }
 ----
 
-==== Execute the code
+===== Execute the code
 
 In order to execute the code, one has to build the project using the default setting. Then, when located at the root of the repository, one can execute the following command:
 [source,bash]
 ----
 cd build/default/src &&
-./feelpp_2mfs_laplacian --config-file ../../../src/cases/wave/square2d/squared2d.cfg
+./feelpp_fs_wave --config-file ../../../src/cases/wave/square2d/squared2d.cfg
 ----
 
 The results are automatically exported to the main feelppdb database, a folder which location is printed in the terminal at the end of the execution. The results can be visualized by importing them into paraview.
 
-.Results of FEM on our testcase
-image::ROOT:square-fem.png[width=600px]
+.Results of FEM on the testcase
+video::zfkrLn5-4qY[youtube, width=1216, height=540]
+
+==== Urban Area
+
+We can also test the code on a more complex domain, such as the urban area.
+Here we have a geometry of an urban area with the following dimension
+stem:[170 \times 200 \times 60].
+
+In this case, we set the following parameters :
+
+[stem]
+++++
+\begin{align}
+\rho(x,y,z) &= 1 \\
+c(x,y,z) &= 343 \\
+s(x,y,z,t) &= 0 \\
+g(x,y,z,t) &= 0 \\
+u_0(x,y,z) &= \exp(-((x-100.0)^2+(y-85.0)^2+(z-25.0)^2)/(2*0.5^2)) \\
+w_0(x,y,z) &= 0
+\end{align}
+++++
+
+These are defined in the associated json file as follows:
+.JSON Congiguration File
+[source,json]
+----
+{
+    "Name": "Doua",
+    "ShortName": "Doua",
+    "Models": {
+        "wave": {
+            "name": "Omega"
+        }
+    },
+    "Meshes": {
+        "wave": {
+            "Import": {
+                "filename": "$cfgdir/Doua_phy_names_hplus.geo",
+                "partition": 0,
+                "h": 0.5
+            }
+        }
+    },
+    "Spaces": {
+        "wave": {
+            "Domain": {
+
+
+            }
+        }
+    },
+    "TimeStepping":
+    {
+        "wave" :{
+            "steady": false,
+            "order" : 2,
+            "start": 0.0,
+            "end": 4,
+            "step": 0.01
+        }
+    },
+    "InitialConditions": {
+        "wave": {
+            "pressure": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.0"
+                    }
+                }
+            },
+            "velocity": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "1.0*exp(-((x-100.0)^2+(y-85.0)^2+(z-25.0)^2)/(2*0.5^2)):x:y:z"
+                    }
+                }
+            }
+        }
+    },
+    "BoundaryConditions": {
+        "wave": {
+            "flux": {
+                "Gamma": {
+                    "expr": "0.0"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "wave": {
+            "c": 343,
+            "rho": "1.0",
+            "mu": "117649.0",
+            "s": "0.0"
+        }
+    }
+}
+----
+
+We use the same C++ code as in the previous test case (Square Domain), with the exception of the value of the constant `FEELPP_DIM` in the source code (`wave.hpp`). In the previous test case, it was set to `2`, reflecting a two-dimensional scenario. In this case, however, we must set it to `3` since we are working in a three-dimensional space.
+
+We can remark that stem:[mu = 117649]. It is because of CFL condition.
+As reminder, stem:[\Delta t \leq CFL \frac{h}{c}]. We chose stem:[CFL=1]
+and stem:[\Delta t = \frac{h}{c}]
+
+===== Execute the code
+
+To execute the code, one has to build the project using the default
+setting as explained in the previous test case. Then one can execute
+the following command :
+
+[source,bash]
+----
+cd build/default/src &&
+./feelpp_fs_wave --config-file ../../../src/cases/wave/urban_area/Doua_phy_names_hplus.cfg
+----
+
+.Results of FEM on the testcase
+video::p41gEtOZodI[youtube, width=1216, height=540]

@@ -91,11 +91,10 @@ p_h(x,0) &= 0 \qquad \forall x \in \Omega, \\
 The resulting mass matrix becomes densely populated as the simulation space expands and the order of approximation increases. This poses a double problem: a high computational load for the inversion of the matrix at each time step, and substantial data storage if we choose to retain the inverse of the mass matrix. These constraints underline the need for a more efficient method of handling large matrices in the context of acoustic simulation.
 
 One solution to this problem is the use of Legendre-Gauss-Lobatto quadrature points for interpolation and the calculation of matrices by Gauss-Lobatto numerical integration, leading to mass condensation and enabling the use of an explicit scheme. This method is known as the "spectral finite element method". So the important point of this method is to make the interpolation points coincide with the quadrature points of the integration formulas.
-quadrature points of the integration formulas.
 
 == The spectral mixed finite element method
 
-We will reduce the storage of the stiffness matrix involved in the spectral finite element method by using a mixed form of equation by using a mixed form of our equation.
+We will reduce the storage of the stiffness matrix involved in the spectral finite element method by using a mixed form of equation.
 
 === Setting up a mixed formulation
 We can write the equation in the following mixed forms:
