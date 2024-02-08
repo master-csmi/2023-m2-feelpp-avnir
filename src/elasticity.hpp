@@ -37,7 +37,7 @@
 #include <feel/feelvf/form.hpp>
 #include <feel/feelvf/vf.hpp>
 #include <feel/feelvf/measure.hpp>
-#include <feel/feelts/bdf.hpp>
+#include <feel/feelts/newmark.hpp>
 
 
 namespace Feel
@@ -105,10 +105,10 @@ public:
     using mesh_t = Mesh<Simplex<Dim>>;
     using space_t = Pchv_type<mesh_t, Order>;
     using space_ptr_t = Pchv_ptrtype<mesh_t, Order>; // Define the type for Pchv_ptrtype
-    using element_ = typename space_t::element_type;
+    using element_t = typename space_t::element_type;
     using form2_type = form2_t<space_t,space_t>; // Define the type for form2
     using form1_type = form1_t<space_t>; // Define the type for form1
-    using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>;
+    using ts_ptrtype = std::shared_ptr<Newmark<space_t>>;
     using exporter_ptrtype = std::shared_ptr<Exporter<mesh_t>>; // Define the type for exporter_ptrtype
 
     Elastic() = default;
@@ -118,24 +118,25 @@ public:
     nl::json const& specs() const { return specs_; }
     std::shared_ptr<mesh_t> const& mesh() const { return mesh_; }
     space_ptr_t const& Xh() const { return Xh_; }
-    element_ const& u() const { return u_; }
-    element_ const& v() const { return v_; }
+    element_t const& u() const { return u_; }
+    element_t const& v() const { return v_; }
     form2_type const& a() const { return a_; }
     form2_type const& at() const { return at_; }
     form1_type const& l() const { return l_; }
     form1_type const& lt() const { return lt_; }
-    bdf_ptrtype const& bdf() const { return bdf_; }
+    ts_ptrtype const& bdf() const { return ts_; }
     exporter_ptrtype const& exporter() const { return e_; }
     nl::json measures() const { return meas_; }
 
     // Mutators
     void setSpecs(nl::json const& specs) { specs_ = specs; }
     void setMesh(std::shared_ptr<mesh_t> const& mesh) { mesh_ = mesh; }
-    void setU(element_ const& u) { u_ = u; }
+    void setU(element_t const& u) { u_ = u; }
 
     void initialize();
-    void processMaterials();
-    void processBoundaryConditions();
+    void processLoading(form1_type& l);
+    void processMaterials(form2_type &a);
+    void processBoundaryConditions(form1_type& l, form2_type& a);
     void run();
     void timeLoop();
     void exportResults();
@@ -149,10 +150,10 @@ private:
     nl::json specs_;
     std::shared_ptr<mesh_t> mesh_;
     space_ptr_t Xh_;
-    element_ u_, v_, dtun;
+    element_t u_, v_, dtun;
     form2_type a_, at_;
     form1_type l_, lt_;
-    bdf_ptrtype bdf_;
+    ts_ptrtype ts_;
     exporter_ptrtype e_;
     nl::json meas_;
     double E, nu, lambda, mu, rho, beta, gamma;
@@ -163,7 +164,6 @@ private:
 template <int Dim, int Order>
 Elastic<Dim, Order>::Elastic(nl::json const& specs) : specs_(specs)
 {
-    initialize();
 }
 
 // Initialization
@@ -192,11 +192,11 @@ void Elastic<Dim, Order>::initialize()
     l_ = form1( _test = Xh_ );
     lt_ = form1( _test = Xh_ );
 
-    bool steady = get_value(specs_, "/TimeStepping/wave/steady", true);
-    int time_order = get_value(specs_, "/TimeStepping/wave/order", 2);
-    double initial_time = get_value(specs_, "/TimeStepping/wave/start", 0.0);
-    double final_time = get_value(specs_, "/TimeStepping/wave/end", 0.3);
-    double time_step = get_value(specs_, "/TimeStepping/wave/step", 0.002);
+    bool steady = get_value(specs_, "/TimeStepping/elastic/steady", true);
+    int time_order = get_value(specs_, "/TimeStepping/elastic/order", 2);
+    double initial_time = get_value(specs_, "/TimeStepping/elastic/start", 0.0);
+    double final_time = get_value(specs_, "/TimeStepping/elastic/end", 0.3);
+    double time_step = get_value(specs_, "/TimeStepping/elastic/step", 0.002);
 
     /////////////////////////////////////////////////////
     //  Parameters and Initializations for Elasticity  //
@@ -208,10 +208,10 @@ void Elastic<Dim, Order>::initialize()
     gamma = get_value(specs_, "/Parameters/elastic/gamma/expr", 0.5); // Newmark gamma
     lambda = E*nu/( (1+nu)*(1-2*nu) );
     mu = E/(2*(1+nu));
-    F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
-    G = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
-    auto f = expr<FEELPP_DIM,1>(F);
-    auto g = expr<FEELPP_DIM,1>(G);
+//    F = specs_["/InitialConditions/elastic/externalF/Expression/Omega/expr"_json_pointer].get<std::string>();
+//    G = specs_["/InitialConditions/elastic/displacement/Expression/Omega/expr"_json_pointer].get<std::string>();
+//    auto f = expr<FEELPP_DIM,1>(F);
+//    auto g = expr<FEELPP_DIM,1>(G);
     auto u0_ = Xh_->element();
     u0_.zero();
     dtun.zero();
@@ -223,11 +223,12 @@ void Elastic<Dim, Order>::initialize()
     /////////////////////////////////////////////////////
     std::cout << "**** Initialize Dirac **** \n" << std::endl;
     node_type n(FEELPP_DIM);
-    for (int i = 0 ; i < FEELPP_DIM ; i++){
-        n(i) = 0.1;
-    }
+    n(0) = -1;
+    n(1) = 0.2312;
+
+
     std::cout << " n = " << n << "\n" << std::endl;
-    auto s_dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S");
+    auto s_dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S", "{1e8,0}");
     auto f_0 = form1( _test = Xh_, _vector = s_dirac->containerPtr() ); // contient la contribution du dirac
 
     /////////////////////////////////////////////////
@@ -250,53 +251,26 @@ void Elastic<Dim, Order>::initialize()
     // u0_.on(_range=elements(mesh_), _expr=localizedPerturbation);
 
 
-    double rho = 7800.; // kg.m^-3
-
     std::cout << "Dim : " << FEELPP_DIM << std::endl;
     std::cout << "Order : " << FEELPP_ORDER << std::endl;
+    
+    ts_ = newmark( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
 
+
+    e_ = Feel::exporter(_mesh = mesh_, _name = "elasticity");
     ////////////////////////////////////////////////////
     //          Newmark beta-model for dttun          //
     ////////////////////////////////////////////////////
     l_.zero();
     a_.zero();
-
-    a_ += integrate( _range = elements(mesh_), _expr= rho / time_step / time_step / beta * trans(idt(u_))*id(v_)
-                                                + lambda * inner(grad(u_), grad(v_)) + 2 * mu * trace(sym(grad(u_)*trans(sym(grad(v_))))));
-    l_ += f_0;
-    l_ += integrate( _range = elements(mesh_), _expr= rho * (1 - 2*beta)/(2*beta) * inner(f,id(v_)) );
-    l_ += integrate( _range = elements(mesh_), _expr= - rho * (1 - 2*beta)/(2*beta) * lambda * inner(gradv(u0_),grad(v_))
-                                                - rho * (1 - 2*beta)/(beta) * mu * trace(sym(gradv(u0_)) * trans(sym(grad(v_)))));
-    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= (1 + rho * (1-2*beta)/(2*beta) * inner(g, id(v_)))); // = (1 + (1 - 2*beta)/(2*beta) * inner(g, id(v_)));
-
-    a_.solve( _rhs = l_, _solution = u_ );
-
-    ////////////////////////////////////////////////////
-    //         Newmark gamma-model for dtun           //
-    ////////////////////////////////////////////////////
-    a_.zero();
-    l_.zero();
-
-    a_ += integrate( _range = elements(mesh_), _expr= trans(idt(dtun))*id(v_) );
-    l_ += f_0; // f_0.scale(time_step*(1-gamma)/rho);
-    l_ += integrate( _range = elements(mesh_), _expr= time_step * (1-gamma) / rho *(-lambda*inner(gradv(u0_),grad(v_)) - 2*mu*trace(sym(gradv(u0_))*trans(sym(grad(v_)))) )  );
-    l_ += integrate( _range = elements(mesh_), _expr= time_step * gamma / rho * (inner(f,id(v_)) - lambda*inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_))))));
-    l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= 1/rho * inner(g, id(v_)) );
-
-    a_.solve( _rhs = l_, _solution = dtun );
-
-    ////////////////////////////////////////////////////
-    //                Initialize BDF                  //
-    ////////////////////////////////////////////////////
-
-    bdf_ = Feel::bdf( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
-
-    bdf_->start();
+    
+    ts_->start();
     if ( steady )
-        bdf_->setSteady();
+        ts_->setSteady();
 
-    bdf_->initialize( u0_ ); // set u0_
-    bdf_->shiftRight( u_ ); // set u1_
+    ts_->initialize( u0_ ); // set u0_
+    u_ = u0_;
+    //ts_->shiftRight( u_ ); // set u1_
 
 
     if ( steady )
@@ -304,56 +278,98 @@ void Elastic<Dim, Order>::initialize()
     else
     {
         std::cout << "\n***** Compute Transient state *****" << std::endl;
-        std::cout << "The step is  " << bdf_->timeStep() << "\n"
-                  << "The initial time is " << bdf_->timeInitial() << "\n"
-                  << "The final time is " << bdf_->timeFinal() << "\n"
-                  << "BDF order :  " << bdf_->timeOrder() << "\n" << std::endl
-                  << "BDF coeff :  " << bdf_->polyDerivCoefficient( 0 ) << "\n" << std::endl;
+        std::cout << "The step is  " << ts_->timeStep() << "\n"
+                  << "The initial time is " << ts_->timeInitial() << "\n"
+                  << "The final time is " << ts_->timeFinal() << "\n";
+                  //<< "BDF order :  " << ts_->timeOrder() << "\n" << std::endl
+                  //<< "BDF coeff :  " << ts_->polyDerivCoefficient( 0 ) << "\n" << std::endl;
     }
 
-    a_.zero();
     at_.zero();
-    l_.zero();
     lt_.zero();
 
-    e_ = Feel::exporter(_mesh = mesh_);
+    ts_->updateFromDisp(u_);
+    e_->step(0)->add( "displacement", u_ );
+    e_->step(0)->add( "velocity", ts_->currentVelocity() );
+    e_->step(0)->add( "acceleration", ts_->currentAcceleration() );
+    e_->save();
+}
+
+template <int Dim, int Order>
+void Elastic<Dim, Order>::processLoading(form1_type& l)
+{
+    if ( specs_["/Models/elastic"_json_pointer].contains("loading") )
+    {
+        for ( auto [key, loading] : specs_["/Models/elastic/loading"_json_pointer].items() )
+        {
+            LOG( INFO ) << fmt::format( "Loading {} found", key );
+            std::string loadtype = fmt::format( "/Models/elastic/loading/{}/type", key );
+            
+            if ( specs_[nl::json::json_pointer( loadtype )].get<std::string>() == "Dirac" )
+            {
+                LOG( INFO ) << fmt::format( "Loading {}: Dirac found", key );
+                std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
+                auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
+                std::cout << fmt::format("Loading expr : {} ", e) << std::endl;
+                auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
+                std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
+                std::cout << fmt::format("Loading position : {} ", p) << std::endl;
+                node_type n(p.size());
+                for (int i = 0; i < p.size(); i++)
+                    n(i) = p[i];
+                auto dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, key, e);
+                auto f = form1( _test = Xh_, _vector = dirac->containerPtr() );
+                l += f;
+            }
+        }
+    }
 }
 
 // Process materials
 template <int Dim, int Order>
-void Elastic<Dim, Order>::processMaterials()
+void Elastic<Dim, Order>::processMaterials( form2_type &a )
 {
-    auto def = sym(grad(u_));
-    auto Id = eye<FEELPP_DIM,FEELPP_DIM>();
     for ( auto [key, material] : specs_["/Models/elastic/Materials"_json_pointer].items() )
     {
-        LOG( INFO ) << fmt::format( "Material {} found", material );
+        LOG( INFO ) << fmt::format( "Material {} found", material.get<std::string>() );
 
-        std::string matMu = fmt::format( "/Materials/{}/mu", material.get<std::string>() );
-        auto MU = specs_[nl::json::json_pointer( matMu )].get<double>();
-        std::string matLambda = fmt::format( "/Materials/{}/lambda", material.get<std::string>() );
-        auto Lambda = specs_[nl::json::json_pointer( matLambda )].get<double>();
+        std::string matE = fmt::format( "/Materials/{}/parameters/E/value", material.get<std::string>() );
+        auto E = std::stod(specs_[nl::json::json_pointer( matE )].get<std::string>());
+        std::string matNu = fmt::format( "/Materials/{}/parameters/nu/value", material.get<std::string>() );
+        auto nu = std::stod(specs_[nl::json::json_pointer( matNu )].get<std::string>());
+        std::string matRho = fmt::format( "/Materials/{}/parameters/rho/value", material.get<std::string>() );
+        auto rho = std::stod(specs_[nl::json::json_pointer( matRho )].get<std::string>());
+        double lambda = E*nu/( (1+nu)*(1-2*nu) );
+        double mu = E/(2*(1+nu));
 
-        auto sigma = Lambda*trace(def)*Id + 2*MU*def;
-        a_ += integrate( _range = elements(mesh_), _expr = inner( sigma, grad(v_) ) );
-        // a_ += integrate( _range=markedfaces(mesh_,"Gamma"), _expr=-inner(sigma*N(),id(v_)));
-        a_ += integrate( _range=markedfaces(mesh_,"Gamma"), _expr=-inner(expr<FEELPP_DIM,1>(G),id(v_)));
+        a += integrate( _range = markedelements(mesh_, material.get<std::string>()), 
+                         _expr= rho*inner( ts_->polyDerivCoefficient()*idt(u_),id( v_ ) )
+                              + lambda * divt(u_)*div(v_) + 2 * mu * trace(sym(gradt(u_)*trans(sym(grad(v_))))));
     }
 }
 
 // Process boundary conditions
 template <int Dim, int Order>
-void Elastic<Dim, Order>::processBoundaryConditions()
+void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a)
 {
     // Boundary Condition Dirichlet
-    auto bc_dir = specs_["/BoundaryConditions/elastic/Dirichlet/Gamma/g/expr"_json_pointer].get<std::string>();
-    std::cout << "BoundaryCondition Dirichlet : " << bc_dir << std::endl;
-    a_+=on(_range=markedfaces(mesh_,"Gamma"), _rhs=l_, _element=u_, _expr=expr<FEELPP_DIM,1>( bc_dir ) );
+    if ( specs_["/BoundaryConditions/elastic"_json_pointer].contains("Dirichlet") )
+    {
+        LOG( INFO ) << fmt::format( "Dirichlet conditions found" );
+        for ( auto [key, bc] : specs_["/BoundaryConditions/elastic/Dirichlet"_json_pointer].items() )
+        {
+            LOG( INFO ) << fmt::format( "Dirichlet conditions found: {}", key );
+            std::string e = fmt::format("/BoundaryConditions/elastic/Dirichlet/{}/g/expr",key);
+            auto bc_dir = specs_[nl::json::json_pointer( e )].get<std::string>();
+            std::cout << "BoundaryCondition Dirichlet : " << bc_dir << std::endl;
+            a+=on(_range=markedfaces(mesh_,key), _rhs=l, _element=u_, _expr=expr<FEELPP_DIM,1>( bc_dir ) );
+        }
+    }
 
-    // Boundary Condition Neumann
-    auto bc_neu = specs_["/BoundaryConditions/elastic/Neumann/Gamma/pure_traction/g/expr"_json_pointer].get<std::string>();
-    std::cout << "Boundary Condition Neumann : " <<  bc_neu << std::endl;
-    l_ += integrate( _range = markedfaces( mesh_ , "Gamma"), _expr = inner( expr<FEELPP_DIM,1>( bc_neu ), id( v_ )) );
+    //// Boundary Condition Neumann
+    //auto bc_neu = specs_["/BoundaryConditions/elastic/Neumann/Gamma/pure_traction/g/expr"_json_pointer].get<std::string>();
+    //std::cout << "Boundary Condition Neumann : " <<  bc_neu << std::endl;
+    //l_ += integrate( _range = markedfaces( mesh_ , "Gamma"), _expr = inner( expr<FEELPP_DIM,1>( bc_neu ), id( v_ )) );
 }
 
 // Run method (main method to run Laplacian process)
@@ -362,51 +378,52 @@ void Elastic<Dim, Order>::run()
 {
     std::cout << "\n***** Initialize *****" << std::endl;
     initialize();
-    std::cout << "\n***** Process materials *****" << std::endl;
-    processMaterials();
+    //std::cout << "\n***** Process materials *****" << std::endl;
+    //processMaterials();
     std::cout << "\n***** Process boundary conditions *****" << std::endl;
-    processBoundaryConditions();
+    //processBoundaryConditions();
     std::cout << "\n***** Time loop *****" << std::endl;
     timeLoop();
     std::cout << "\n***** Export results *****" << std::endl;
-    exportResults();
+    //exportResults();
 }
 
 // Time loop
 template <int Dim, int Order>
 void Elastic<Dim, Order>::timeLoop()
 {
-    ////////////////////////////////////////////////////
-    //          Linear Elasticity Time Loop           //
-    ////////////////////////////////////////////////////
-    auto f = expr<FEELPP_DIM,1>(F);
-    auto g = expr<FEELPP_DIM,1>(G);
-    double rho = 1.0;
     int it = 0; // initialization of the counter for time backtracing when evaluating the disturbance on the point of interest
-    for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
+    processLoading(lt_);
+    processMaterials(a_);
+    for ( ts_->start(); ts_->isFinished()==false; ts_->next(u_) )
     {
         if (Environment::isMasterRank())
-            std::cout << "time " << bdf_->time() << std::endl;
-        // u_ = u_n+1
-        // dtun holds the last velocity of the displacement field u
-        auto un = bdf_->unknown(0); // un = u_n
-        auto un_1 = bdf_->unknown(1);  // un_1 = u_{n-1}
-
-        auto dt = expr(bdf_->timeStep());
+            std::cout << "time " << ts_->time() << std::endl;
 
         ////////////////////////////////////////////////////
         //          Newmark beta-model for dttun          //
         ////////////////////////////////////////////////////
-        at_ += integrate( _range = elements(mesh_), _expr= rho / dt / dt / beta * trans(idt(u_))*id(v_)
-                                                    + lambda * inner(grad(u_), grad(v_)) + 2 * mu * trace(sym(gradv(u_))*trans(sym(grad(v_)))));
-        lt_ += integrate( _range = elements(mesh_), _expr= inner(f,id(v_)) + rho / beta / dt / dt * inner(id(un) + dt * id(dtun), id(v_)));
-        lt_ += integrate( _range = elements(mesh_), _expr= (1 - 2*beta)/(2*beta) * inner(f,id(v_))
-                                                    - (1 - 2*beta)/(2*beta) * lambda * inner(gradv(un),grad(v_))
-                                                    - (1 - 2*beta)/(beta) * mu * trace(sym(grad(un)*trans(sym(grad(v_))))));
-        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr= 1/(2*beta) *inner(g, id(v_))); // = (1 + (1 - 2*beta)/(2*beta) * inner(g, id(v_)));
+        at_ = a_;
+
+        for ( auto [key, material] : specs_["/Models/elastic/Materials"_json_pointer].items() )
+        {
+            LOG( INFO ) << fmt::format( "Material {} found", material );
+
+            std::string matRho = fmt::format( "/Materials/{}/parameters/rho/value", material.get<std::string>() );
+            auto rho = std::stod(specs_[nl::json::json_pointer( matRho )].get<std::string>());
+            lt_ +=  integrate( _range=markedelements( mesh_, material.get<std::string>() ), _expr= rho*inner( idv(ts_->polyDeriv()),id( v_ ) ) );
+        }
+
+        processBoundaryConditions(lt_, at_);
+
         at_.solve( _rhs = lt_, _solution = u_ );
 
-        this->exportResults();
+        //this->exportResults();
+        ts_->updateFromDisp(u_);
+        e_->step(ts_->time())->add( "displacement", u_ );
+        e_->step(ts_->time())->add( "velocity", ts_->currentVelocity() );
+        e_->step(ts_->time())->add( "acceleration", ts_->currentAcceleration() );
+        e_->save();
 
         ////////////////////////////////////////////////////
         //         Newmark gamma-model for dtun           //
@@ -414,24 +431,6 @@ void Elastic<Dim, Order>::timeLoop()
         at_.zero();
         lt_.zero();
 
-        at_ += integrate( _range = elements(mesh_), _expr = trans(idt(dtun)) * id(v_) );
-        lt_ += integrate( _range = elements(mesh_), _expr = dt * (1-gamma) / rho * inner(f,id(v_)) );
-        lt_ += integrate( _range = elements(mesh_), _expr = - dt * (1-gamma) / rho * (lambda * inner(gradv(un),grad(v_)) - 2*mu*trace(sym(gradv(un))*trans(sym(grad(v_))))));
-        lt_ += integrate( _range = elements(mesh_), _expr = dt * gamma / rho * (inner(f,id(v_)) - (lambda * inner(gradv(u_),grad(v_)) - 2*mu*trace(sym(gradv(u_))*trans(sym(grad(v_)))))));
-        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = 1/rho * inner(g, id(v_)) );
-
-        at_.solve( _rhs = lt_, _solution = dtun );
-
-        at_.zero();
-        lt_.zero();
-
-        ////////////////////////////////////////////////////
-        //          Tests at points of interest           //
-        ////////////////////////////////////////////////////
-
-        // At each iteration, evaluate u_ at each point of interest (they are in the Points Group "PointsOfIntererst" in the .geo file)
-        // If the disturbance is not null, than store the iteration number and pursue the time loop
-        // During the exports, backtrace using the iteration number and the time step to evaluate the time it took the disturbance to reach each of the points
         it += 1;
     }
 }
@@ -441,15 +440,15 @@ void Elastic<Dim, Order>::timeLoop()
 template <int Dim, int Order>
 void Elastic<Dim, Order>::exportResults()
 {
-    e_->step(bdf_->time())->addRegions();
-    e_->step(bdf_->time())->add("u", u_);
+    e_->step(ts_->time())->addRegions();
+    e_->step(ts_->time())->add("u", u_);
     e_->save();
 
 
     auto totalQuantity = integrate(_range=elements(mesh_), _expr=idv(u_)).evaluate()(0,0);
     auto totalFlux = integrate(_range=boundaryfaces(mesh_), _expr=gradv(u_)*N()).evaluate()(0,0);
     double meas=measure(_range=elements(mesh_), _expr=cst(1.0));
-    meas_["time"].push_back(bdf_->time());
+    meas_["time"].push_back(ts_->time());
     meas_["totalQuantity"].push_back(totalQuantity);
     meas_["totalFlux"].push_back(totalFlux);
     meas_["mean"].push_back(totalQuantity/meas);
