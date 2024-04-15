@@ -17,7 +17,7 @@ Point(8) = {0.4, 0.7, 0.0, h};
 Point(9) = {0.4, 0.3, 0.0, h};
 
 // create a sensor
-Point(10) = {0.1,0.1,0.0,h};
+Point(10) = {-0.9,0.,0.0,h};
 
 // square lines
 Line(1) = {1, 2};

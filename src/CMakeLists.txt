@@ -23,6 +23,7 @@
 #
 feelpp_add_application(wave SRCS wave.cpp TESTS INSTALL )
 feelpp_add_application(elasticity SRCS elasticity.cpp TESTS INSTALL )
+# feelpp_add_application(elasticity_cantilever SRCS elasticity_cantilever.cpp TESTS INSTALL )
 feelpp_add_testcase(cases PREFIX fp CATEGORY feelpp)
 
 # if(FEELPP_TOOLBOXES_FOUND)

@@ -38,12 +38,13 @@
 #include <feel/feelvf/vf.hpp>
 #include <feel/feelvf/measure.hpp>
 #include <feel/feelts/newmark.hpp>
+#include "wavelet.hpp"
 
 
 namespace Feel
 {
 inline const int FEELPP_DIM=2;
-inline const int FEELPP_ORDER=2;
+inline const int FEELPP_ORDER=3;
 
 static inline const bool do_print = true;
 static inline const bool dont_print = false;
@@ -136,7 +137,7 @@ public:
     void initialize();
     void processLoading(form1_type& l);
     void processMaterials(form2_type &a);
-    void processBoundaryConditions(form1_type& l, form2_type& a);
+    void processBoundaryConditions(form1_type& l, form2_type& a,double t, int it);
     void run();
     void timeLoop();
     void exportResults();
@@ -321,6 +322,48 @@ void Elastic<Dim, Order>::processLoading(form1_type& l)
                 auto f = form1( _test = Xh_, _vector = dirac->containerPtr() );
                 l += f;
             }
+            else if(specs_[nl::json::json_pointer( loadtype )].get<std::string>() == "Curve")
+            {
+                LOG(INFO) << fmt::format("Loading {}: Curve found", key);
+                std::string loadexpr = fmt::format("/Models/elastic/loading/{}/parameters/expr", key);
+                auto e = specs_[nl::json::json_pointer(loadexpr)].get<std::string>();
+                std::cout << fmt::format("Loading expr : {} ", e) << std::endl;
+                auto loadpos = fmt::format("/Models/elastic/loading/{}/parameters/location", key);
+                // l+=on(_range=markedfaces(mesh_,loadpos),rhs=l,element=u_,expr=expr<FEELPP_DIM,1>(e));
+                l_ += integrate(_range = markedfaces( mesh_ , loadpos), _expr = inner( expr<FEELPP_DIM,1>(e),id(v_)));
+                // for ( auto [key, bc] : specs_["/BoundaryConditions/elastic/Dirichlet"_json_pointer].items() )
+                // {
+                //     LOG( INFO ) << fmt::format( "Dirichlet conditions found: {}", key );
+                //     std::string e = fmt::format("/BoundaryConditions/elastic/Dirichlet/{}/g/expr",key);
+                //     auto bc_dir = specs_[nl::json::json_pointer( e )].get<std::string>();
+                //     std::cout << "BoundaryCondition Dirichlet : " << bc_dir << std::endl;
+                //     a+=on(_range=markedfaces(mesh_,key), _rhs=l, _element=u_, _expr=expr<FEELPP_DIM,1>( bc_dir ) );
+                // }
+            }
+            else if (specs_[nl::json::json_pointer( loadtype )].get<std::string>() == "Wavelet")
+            {
+                LOG( INFO ) << fmt::format( "Dirichlet conditions found" );
+                std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
+                // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
+                std::string e = "{";
+                for (int i = 0; i < FEELPP_DIM-1;i++)
+                {
+                    e.append("0,");
+                }
+                e.append("0}");
+                std::cout << e << std::endl;
+                auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
+                std::vector<double> p;
+                p.push_back(wavelet(0));
+                for (int i = 1; i<FEELPP_DIM; i++)
+                    p.push_back(0);
+                node_type n(p.size());
+                for (int i = 0; i < p.size(); i++)
+                    n(i) = p[i];
+                auto dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, key, e);
+                auto f = form1( _test = Xh_, _vector = dirac->containerPtr() );
+                l += f;
+            }
         }
     }
 }
@@ -350,7 +393,7 @@ void Elastic<Dim, Order>::processMaterials( form2_type &a )
 
 // Process boundary conditions
 template <int Dim, int Order>
-void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a)
+void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a,double t, int it)
 {
     // Boundary Condition Dirichlet
     if ( specs_["/BoundaryConditions/elastic"_json_pointer].contains("Dirichlet") )
@@ -361,10 +404,123 @@ void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a
             LOG( INFO ) << fmt::format( "Dirichlet conditions found: {}", key );
             std::string e = fmt::format("/BoundaryConditions/elastic/Dirichlet/{}/g/expr",key);
             auto bc_dir = specs_[nl::json::json_pointer( e )].get<std::string>();
-            std::cout << "BoundaryCondition Dirichlet : " << bc_dir << std::endl;
+            // std::cout << "BoundaryCondition Dirichlet : " << bc_dir << std::endl;
             a+=on(_range=markedfaces(mesh_,key), _rhs=l, _element=u_, _expr=expr<FEELPP_DIM,1>( bc_dir ) );
         }
     }
+
+    if ( specs_["/Models/elastic"_json_pointer].contains("loading") )
+    {
+        for ( auto [key, loading] : specs_["/Models/elastic/loading"_json_pointer].items() )
+        {
+            LOG( INFO ) << fmt::format( "Loading {} found", key );
+            std::string loadtype = fmt::format( "/Models/elastic/loading/{}/type", key );
+            if (specs_[nl::json::json_pointer( loadtype )].get<std::string>() == "Dirac")
+            {
+                LOG( INFO ) << fmt::format( "Dirichlet conditions found" );
+                std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
+                auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
+                auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
+                std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
+                node_type n(p.size());
+                for (int i = 0; i < p.size(); i++)
+                    n(i) = p[i];
+                auto dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, key, e);
+                auto f = form1( _test = Xh_, _vector = dirac->containerPtr() );
+                l += f;
+            }
+            else if (specs_[nl::json::json_pointer( loadtype )].get<std::string>() == "Wavelet")
+            {
+                LOG( INFO ) << fmt::format( "Dirichlet conditions found" );
+                std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
+                // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
+                double force = wavelet(t);
+                std::string e = "{";
+                e.append(std::to_string(force));
+                e.append(",");
+                for (int i = 1; i < FEELPP_DIM-1;i++)
+                {
+                    e.append("0,");
+                }
+                e.append("0}");
+                // std::cout << e << std::endl;
+                // TODO: invert e and p, e is the expression of the force and p is the position of the force
+                auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
+                std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
+                node_type n(p.size());
+                for (int i = 0; i < p.size(); i++)
+                    n(i) = p[i];
+                auto dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, key, e);
+                auto f = form1( _test = Xh_, _vector = dirac->containerPtr() );
+                l += f;
+            }
+            else if (specs_[nl::json::json_pointer( loadtype )].get<std::string>() == "Sensor")
+            {
+                LOG( INFO ) << fmt::format( "Dirichlet conditions found" );
+                std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
+                // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
+                std::string loadcsv = fmt::format( "/Models/elastic/loading/{}/parameters/csv", key );
+                std::cout << "loadcsv : " << specs_[nl::json::json_pointer( loadcsv )].get<std::string>() << std::endl;
+                // Read the it line of the csv file
+                std::ifstream file(specs_[nl::json::json_pointer( loadcsv )].get<std::string>());
+                std::string line;
+                // Check if the file is open
+                if (!file.is_open())
+                {
+                    std::cerr << "Unable to open file : " << specs_[nl::json::json_pointer( loadcsv )].get<std::string>() << std::endl;
+                    return;
+                }
+
+                std::vector<std::string> values;
+                int i = 0;
+                std::string e = "{";
+                while (std::getline(file, line))
+                {
+                    if (i == it+1)
+                    {
+                        std::stringstream ss(line);
+                        std::string value;
+                        int j = 0;
+                        while (std::getline(ss, value, ','))
+                        {
+                            if ((j>0) && (j<Dim))
+                            {
+                                e.append(value);
+                                e.append(",");
+                            }
+                            else if (j==Dim)
+                            {
+                                e.append(value);
+                                e.append("}");
+                            }
+                            values.push_back(value);
+                            j++;
+                        }
+                        break;
+                    }
+                    i++;
+                }
+                file.close();
+                std::cout << "e : " << e << std::endl;
+                // e.append(std::to_string(force));
+                // e.append(",");
+                // for (int i = 1; i < FEELPP_DIM-1;i++)
+                // {
+                //     e.append("0,");
+                // }
+                // e.append("0}");
+                auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
+                std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
+                node_type n(p.size());
+                for (int i = 0; i < p.size(); i++)
+                    n(i) = p[i];
+                auto dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, key, e);
+                auto f = form1( _test = Xh_, _vector = dirac->containerPtr() );
+                l += f;
+            }
+        }
+    }
+
 
     //// Boundary Condition Neumann
     //auto bc_neu = specs_["/BoundaryConditions/elastic/Neumann/Gamma/pure_traction/g/expr"_json_pointer].get<std::string>();
@@ -385,6 +541,7 @@ void Elastic<Dim, Order>::run()
     std::cout << "\n***** Time loop *****" << std::endl;
     timeLoop();
     std::cout << "\n***** Export results *****" << std::endl;
+    writeResultsToFile("results.json");
     //exportResults();
 }
 
@@ -395,6 +552,7 @@ void Elastic<Dim, Order>::timeLoop()
     int it = 0; // initialization of the counter for time backtracing when evaluating the disturbance on the point of interest
     processLoading(lt_);
     processMaterials(a_);
+
     for ( ts_->start(); ts_->isFinished()==false; ts_->next(u_) )
     {
         if (Environment::isMasterRank())
@@ -414,11 +572,12 @@ void Elastic<Dim, Order>::timeLoop()
             lt_ +=  integrate( _range=markedelements( mesh_, material.get<std::string>() ), _expr= rho*inner( idv(ts_->polyDeriv()),id( v_ ) ) );
         }
 
-        processBoundaryConditions(lt_, at_);
+        processBoundaryConditions(lt_, at_,ts_->time(),it);
 
         at_.solve( _rhs = lt_, _solution = u_ );
 
-        //this->exportResults();
+        // Uncomment and export ts_
+        this->exportResults();
         ts_->updateFromDisp(u_);
         e_->step(ts_->time())->add( "displacement", u_ );
         e_->step(ts_->time())->add( "velocity", ts_->currentVelocity() );
@@ -440,38 +599,45 @@ void Elastic<Dim, Order>::timeLoop()
 template <int Dim, int Order>
 void Elastic<Dim, Order>::exportResults()
 {
-    e_->step(ts_->time())->addRegions();
-    e_->step(ts_->time())->add("u", u_);
-    e_->save();
+    // e_->step(ts_->time())->addRegions();
+    // e_->step(ts_->time())->add("u", u_);
+    // e_->save();
 
 
-    auto totalQuantity = integrate(_range=elements(mesh_), _expr=idv(u_)).evaluate()(0,0);
-    auto totalFlux = integrate(_range=boundaryfaces(mesh_), _expr=gradv(u_)*N()).evaluate()(0,0);
-    double meas=measure(_range=elements(mesh_), _expr=cst(1.0));
-    meas_["time"].push_back(ts_->time());
-    meas_["totalQuantity"].push_back(totalQuantity);
-    meas_["totalFlux"].push_back(totalFlux);
-    meas_["mean"].push_back(totalQuantity/meas);
-    meas_["min"].push_back(u_.min());
-    meas_["max"].push_back(u_.max());
+    // auto totalQuantity = integrate(_range=elements(mesh_), _expr=idv(u_)).evaluate()(0,0);
+    // auto totalFlux = integrate(_range=boundaryfaces(mesh_), _expr=gradv(u_)*N()).evaluate()(0,0);
+    // double meas=measure(_range=elements(mesh_), _expr=cst(1.0));
+    // meas_["time"].push_back(ts_->time());
+    // meas_["totalQuantity"].push_back(totalQuantity);
+    // meas_["totalFlux"].push_back(totalFlux);
+    // meas_["mean"].push_back(totalQuantity/meas);
+    // meas_["min"].push_back(u_.min());
+    // meas_["max"].push_back(u_.max());
     for( auto [key,values] : mesh_->markerNames())
     {
-        if ( values[1] == Dim )
+        // std::cout << "key : " << key << std::endl;
+        if (key=="S1")
         {
-            double meas=measure(_range=markedelements(mesh_,key), _expr=cst(1.0));
-            auto quantity = integrate(_range=markedelements(mesh_,key), _expr=idv(u_)).evaluate()(0,0);
-            meas_[fmt::format("quantity_{}",key)].push_back(quantity);
-            meas_[fmt::format("mean_{}",key)].push_back(quantity/meas);
+            double meas = measure(_range=markedelements(mesh_,key), _expr=cst(1.0));
+            std::cout << "meas : " << meas << std::endl;
+            meas_[fmt::format("quantity_{}",key)].push_back(meas);
         }
-        else if ( values[1] == Dim-1 )
-        {
-            double meas=measure(_range=markedfaces(mesh_,key), _expr=cst(1.0));
-            auto quantity = integrate(_range=markedfaces(mesh_,key), _expr=idv(u_)).evaluate()(0,0);
-            meas_[fmt::format("quantity_{}",key)].push_back(quantity);
-            meas_[fmt::format("mean_{}",key)].push_back(quantity/meas);
-            auto flux = integrate(_range=markedfaces(mesh_,key), _expr=gradv(u_)*N()).evaluate()(0,0);
-            meas_[fmt::format("flux_{}",key)].push_back(flux);
-        }
+        // if ( values[1] == Dim )
+        // {
+        //     double meas=measure(_range=markedelements(mesh_,key), _expr=cst(1.0));
+        //     auto quantity = integrate(_range=markedelements(mesh_,key), _expr=idv(u_)).evaluate()(0,0);
+        //     meas_[fmt::format("quantity_{}",key)].push_back(quantity);
+        //     meas_[fmt::format("mean_{}",key)].push_back(quantity/meas);
+        // }
+        // else if ( values[1] == Dim-1 )
+        // {
+        //     double meas=measure(_range=markedfaces(mesh_,key), _expr=cst(1.0));
+        //     auto quantity = integrate(_range=markedfaces(mesh_,key), _expr=idv(u_)).evaluate()(0,0);
+        //     meas_[fmt::format("quantity_{}",key)].push_back(quantity);
+        //     meas_[fmt::format("mean_{}",key)].push_back(quantity/meas);
+        //     auto flux = integrate(_range=markedfaces(mesh_,key), _expr=gradv(u_)*N()).evaluate()(0,0);
+        //     meas_[fmt::format("flux_{}",key)].push_back(flux);
+        // }
     }
 }
 
