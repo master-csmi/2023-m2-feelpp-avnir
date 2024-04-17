@@ -1,7 +1,7 @@
 site:
-  title: Feel++ Template Project
-  url: https://feelpp.github.io/feelpp-project/
-  start_page: feelpp-project::index.adoc
+  title: 2023 M2 Feelpp Sonorhc
+  url: https://feelpp.github.io/2023-m2-feelpp-sonorhc/
+  start_page: 2023-m2-feelpp-sonorhc::index.adoc
 content:
   sources:
   - url: .

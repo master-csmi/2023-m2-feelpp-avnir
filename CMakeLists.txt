@@ -24,11 +24,11 @@
 cmake_minimum_required(VERSION 3.21.0)
 
 project(
-  feelpp-project
+  feelpp-sonorhc
   VERSION 3.0.1 )
 
 set(EXTRA_VERSION "")
-set(PROJECT_SHORTNAME "fp")
+set(PROJECT_SHORTNAME "fs")
 
 include(GNUInstallDirs)
 
@@ -37,16 +37,31 @@ if (POLICY CMP0077)
   set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 endif()
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-find_package(pybind11 CONFIG REQUIRED)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
+ find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+ find_package(pybind11 CONFIG REQUIRED)
+ find_package(Feel++ COMPONENTS Toolboxes PATHS ${FEELPP_DIR}/share/feelpp/feel/cmake/modules $ENV{FEELPP_DIR}/share/feelpp/feel/cmake/modules /usr/share/feelpp/feel/cmake/modules /usr/local/share/feelpp/feel/cmake/modules )
+ if(NOT FEELPP_FOUND)
+   message(FATAL_ERROR "Feel++ was not found on your system. Make sure to install it and specify the FEELPP_DIR to reference the installation directory.")
+ endif()
+ if ( NOT FEELPP_TOOLBOXES_FOUND )
+   message(WARNING "Feel++ Toolboxes SDK is not found on your system. The toolbox application is now disabled.")
+ endif()
+else()
+  feelpp_get_environment()
+  set(FEELPP_DIR ${CMAKE_INSTALL_PREFIX})
+  set(FEELPP_FOUND ON)
+  set(FEELPP_TOOLBOXES_FOUND ${FEELPP_ENABLE_TOOLBOXES})
+  set(FEELPP_MOR_FOUND ${FEELPP_ENNABLE_MOR})
+  #find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+  #find_package(pybind11 CONFIG REQUIRED)
+endif()
 
-find_package(Feel++ COMPONENTS Toolboxes PATHS ${FEELPP_DIR}/share/feelpp/feel/cmake/modules $ENV{FEELPP_DIR}/share/feelpp/feel/cmake/modules /usr/share/feelpp/feel/cmake/modules /usr/local/share/feelpp/feel/cmake/modules )
-if(NOT FEELPP_FOUND)
-  message(FATAL_ERROR "Feel++ was not found on your system. Make sure to install it and specify the FEELPP_DIR to reference the installation directory.")
-endif()
-if ( NOT FEELPP_TOOLBOXES_FOUND )
-  message(WARNING "Feel++ Toolboxes SDK is not found on your system. The toolbox application is now disabled.")
-endif()
+find_package(Python3 COMPONENTS Interpreter Development Development.Module)
+message(STATUS "[feelpp/python] Python3_EXECUTABLE: ${Python3_EXECUTABLE}")
+message(STATUS "[feelpp/python] Python3_INCLUDE_DIRS: ${Python3_INCLUDE_DIRS}")
+message(STATUS "[feelpp/python] Python3_LIBRARIES: ${Python3_LIBRARIES}")
+message(STATUS "[feelpp/python] Python3_VERSION: ${Python3_VERSION}")
 
 enable_testing()
 
@@ -70,7 +85,7 @@ set(CPACK_PACKAGE_NAME "${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSI
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}${EXTRA_VERSION}")
 SET(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}${EXTRA_VERSION}-${CMAKE_SYSTEM_NAME}")
 set(CPACK_PACKAGE_DIRECTORY "${PROJECT_BINARY_DIR}/assets")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cemosis feelpp-project template application")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cemosis 2023-m2-feelpp-sonorhc template application")
 set(CPACK_PACKAGE_DESCRIPTION "Cemosis provides a Feel++ template application.")
 set(CPACK_PACKAGE_VENDOR "Cemosis")
 set(CPACK_PACKAGE_CONTACT "Christophe Prud'homme <christophe.prudhomme@cemosis.fr>")

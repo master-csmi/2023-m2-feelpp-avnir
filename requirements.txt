@@ -9,4 +9,8 @@ scipy
 pandas
 tabulate 
 plotly
-
+pyvista[all]
+trame               
+trame-vuetify 
+trame-vtk
+vtk

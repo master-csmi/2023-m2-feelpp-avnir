@@ -1,0 +1,60 @@
+= Wave equation in unbounded domains
+Dieudonné MEDESSI
+
+Modeling and numerical simulation of wave propagation problems are at the heart of many industrial applications, such as aeronautics or oil exploration. In these various applications, the propagation domain is most often infinite in one direction or very large compared to the wavelength of the signals one wants to reproduce. This leads to the challenge of numerically solving a system of partial differential equations set in an unbounded domain.
+
+To circumvent the infinity, one approach is to define a finite-sized computation box, tailored to the area of particular interest. Once the computation box is defined, the wave propagation problem can be numerically solved using methods based on approximating the solution at various nodes of a given grid, such as finite difference methods or finite element methods. Since the outer edges of the computation box are artificial for the physical problem, they must not generate spurious reflections within the computation domain, so as not to distort the numerical results obtained.
+
+== Numerical Modeling of Artificial Edges
+
+=== Dirichlet-to-Neumann Operator (DtN)
+
+One way to numerically model artificial boundaries is to represent them using the DtN (Dirichlet-to-Neumann) operator, which exactly expresses the transmission of waves across an interface. In the case of artificial boundaries, this operator thus ensures the perfect transmission of the wave from the inside to the outside of the computation box without any reflection within the domain.
+
+However, since this operator is global, its discretization introduces a dense matrix, breaking the sparse structure of the system. Consequently, the computational costs incurred by using this operator are extremely high.
+
+To reduce reflections from artificial boundaries while preserving the sparse structure of the discretization matrices, we can use Absorbing Boundary Conditions (ABC) or Perfectly Matched Layers (PML).
+
+=== Absorbing Boundary Conditions (ABC)
+
+The idea with ABCs is to impose a specific boundary condition on the outer edges of the computation domain, thereby attenuating reflected waves. This is essentially an approximation of the DtN operator, constructed in such a way as to preserve the sparse structure of the matrices.
+
+Unlike PMLs, ABCs are easier to implement when the boundaries of the domain are curved.
+
+=== Perfectly Matched Layers (PML)
+
+The concept with PMLs is that an additional layer is added beyond the artificial boundary, within which the wave is absorbed due to the introduction of a dissipation term, without reflecting at the interface.
+
+PMLs, however, are difficult to implement when the boundaries of the computational domain are curved. To overcome these drawbacks, new formulations such as C-PML (Convolutional Perfectly Matched Layer) have been proposed. However, these do not eliminate all instabilities and are still not suited for curved boundaries.
+
+== Numerical Methods for Solving the Wave Equation
+
+For numerical solving, there are several methods to choose from. Industrial computational codes generally use finite difference methods or finite element methods.
+
+Finite difference methods, although easy to implement, rely on calculating the solution at various nodes of a regular grid, which does not allow for the consideration of complex geometries. For this project, we have decided to use finite element methods, which do not have this disadvantage.
+
+=== Classical Finite Elements
+
+Using a classical finite element method results in a sparse mass matrix, but one that is not trivially invertible. These matrices can, in some practical cases, contain millions of entries, making their inversion a bottleneck, especially for real-world applications.
+
+To address the issue outlined in the previous section, one could use a mass lumping method that makes the mass matrix diagonal. However, this technique compromises the convergence order of the scheme.
+
+=== Spectral Finite Elements
+
+Instead of a classical finite element method, one could use the spectral finite element method, which allows obtaining a diagonal mass matrix without compromising the convergence order of the scheme, by using Gauss-Lobatto quadrature points and weights.
+
+The main drawback of this method is that it relies on 2D quadrangular and 3D parallelepipedal meshes. Therefore, it is difficult to mesh domains with arbitrary geometries.
+
+In this project, this is the method we have chosen to use.
+
+=== Discontinuous Galerkin Methods (DG)
+
+This method does not have the drawbacks of the previous methods. Indeed, it allows the use of triangular meshes in 2D and tetrahedral meshes in 3D, and the mass matrix is by construction block-diagonal, leading to an almost explicit representation of the solution.
+
+There are various DG methods described in the literature. We can particularly mention the Interior Penalty Discontinuous Galerkin (IPDG) method, also known as Symmetric Interior Penalty (SIP), which is known to be stable and consistent, ensuring the convergence order of the scheme.
+
+== References
+
+[ref-1] Véronique Duprat. Conditions aux limites absorbantes enrichies pour l’équation 
+des ondes acoustiques et l’équation d’Helmholtz. Analyse numérique [math.NA]. 
+Université de Pau et des Pays de l’Adour, 2011. Français. NNT : . tel-00817506

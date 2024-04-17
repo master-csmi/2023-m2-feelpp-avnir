@@ -1,0 +1,455 @@
+= Wave equation using finite element method
+Ariel DE VORA / Dieudonné MEDESSI / Obèd SABA
+:page-tags: case
+:page-illustration: square2d.0055.png
+:description: We simulate the wave equation using the finite element method
+
+== Problem Statement
+
+We aim to verify the correctness of the finite element method by solving the acoustic wave equation in a two-dimensional domain. The general form of the wave equation is given by:
+[stem]
+++++
+\begin{cases}
+\begin{align}
+\frac{1}{\mu(x)} \partial_t^2 u(x,t) - \nabla ( \frac{1}{\rho(x)} \nabla u(x,t) ) &= s(x,t) \quad x \in \Omega, \quad t \in \times (0,T) \\
+\partial_n u(x,t) &= g(x,t) \quad x \in \partial \Omega, \quad t \in \times (0,T) \\
+u(x,0) &= u_0(x) \quad x \in \Omega \\
+\partial_t u(x,0) &= w_0(x) \quad x \in \Omega
+\end{align}
+\end{cases}
+++++
+
+The equation's parametes are::
+* stem:[\mu(x) = \rho(x)*c(x)^2]
+* stem:[\rho] is the density
+* stem:[c] is the speed
+* stem:[\partial_n u(x,t)] where stem:[n] is the outward normal vector to the boundary of the domain.
+* stem:[u] is the function to be determined (that describes the wave)
+* stem:[s] is the source term (assumed given function)
+* stem:[u_0] is the initial condition for $u$ (assumed given function)
+* stem:[w_0] is the initial condition for stem:[\partial_t u] (assumed given function)
+* stem:[g] is the boundary condition for stem:[\partial_n u] (assumed given function)
+
+=== Weak Formulation
+
+In order to adapt the finite element method, we need to transform the problem into a weak formulation. We multiply the equation by a test function stem:[v \in H^1(\Omega)] and integrate over the domain:
+[stem]
+++++
+\begin{align}
+\int_{\Omega} \frac{1}{\mu(x)} \partial_t^2 u(x,t) v(x) \, dx - \int_{\Omega} \nabla ( \frac{1}{\rho(x)} \nabla u(x,t) ) v(x) \, dx &= \int_{\Omega} s(x,t) v(x) \, dx\\
+\int_{\Omega} \frac{1}{\mu(x)} \partial_t^2 u(x,t) v(x) \, dx + \int_{\Omega} \nabla v(x) ( \frac{1}{\rho(x)} \nabla u(x,t) ) \, dx - \int_{\partial \Omega} v(x) ( \frac{1}{\rho(x)} \nabla u(x,t) ) \cdot n \, ds &= \int_{\Omega} s(x,t) v(x) \, dx \\
+\int_{\Omega} \frac{1}{\mu(x)} \partial_t^2 u(x,t) v(x) \, dx + \int_{\Omega} \nabla v(x) ( \frac{1}{\rho(x)} \nabla u(x,t) ) \, dx &= \int_{\Omega} s(x,t) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,t) v(x) \, ds \\
+a(u,v) &= l(v)
+\end{align}
+++++
+
+Where stem:[a(u,v)] is the bilinear form and stem:[l(v)] is the linear form.
+
+This can be written in a more compact form as follows:
+[stem]
+++++
+AU = L
+++++
+
+where stem:[A] is the stiffness matrix, stem:[U] is the vector of unknowns and stem:[L] is the load vector.
+stem:[A] and stem:[F] are defined as follows:
+[stem]
+++++
+\begin{align}
+A_{i,j} &= a(\phi_i,\phi_j) \\
+F_{i} &= l(\phi_i)
+\end{align}
+++++
+
+where stem:[\phi_i] are the basis functions of the chosen function space.
+
+For the sake of readability, we define the following:
+[stem]
+++++
+\begin{align}
+(u,v)_{\mu} &= \int_{\Omega} \frac{1}{\mu(x)} u(x,t) v(x) \, dx \\
+(u,v)_{\rho} &= \int_{\Omega} \frac{1}{\rho(x)} u(x,t) v(x) \, dx
+\end{align}
+++++
+
+which allows us to rewrite the weak formulation as:
+[stem]
+++++
+\partial_t^2 (u,v)_{\mu} + (\nabla u, \nabla v)_{\rho} = \int_{\Omega} s(x,t) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,t) v(x) \, ds
+++++
+
+=== Time Discretization
+
+In order to be able to solve for stem:[U] during the timeloop, we will have to approximate the second time derivative with a three-point central difference scheme:
+[stem]
+++++
+\partial_t^2 u(x,t) \approx \frac{u(x,t+\Delta t) - 2 u(x,t) + u(x,t-\Delta t)}{\Delta t^2}
+++++
+
+And the expression using the unknowns at time stem:[t^n], stem:[t^{n+1}] and stem:[t^{n-1}] becomes:
+[stem]
+++++
+\partial_t^2 u(x,t) \approx \frac{U^{n+1} - 2 U^n + U^{n-1}}{\Delta t^2}
+++++
+
+where stem:[U^n] is the vector of unknowns at time stem:[t^n], stem:[U^{n+1}] is the vector of unknowns at time stem:[t^{n+1}] and stem:[U^{n-1}] is the vector of unknowns at time stem:[t^{n-1}].
+
+=== Initial Conditions
+
+In order to solve the problem, we need to specify the initial conditions. Since stem:[u_0] is given by the problem statement, we only need to compute stem:[u_1]. We can use the following second order series expansion:
+[stem]
+++++
+\begin{align}
+u(x,0) &= u_0(x) \\
+u_1(x) &= u(x,\Delta t) \approx u_0(x) + \Delta t \partial_t u_0(x) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x) \\
+&= u_0(x) + \Delta t w_0(x) + \frac{\Delta t^2}{2} \partial_t^2 u_0(x)
+\end{align}
+++++
+
+The only unknown in the above equation is stem:[\partial_t^2 u_0(x,y)]. But we know that it has to satisfy the first equality in the problem statement. Therefore, we can compute it as follows:
+[stem]
+++++
+\begin{align}
+(\partial_t^2 u_0,v)_\mu + (\nabla u_0, \nabla v)_\rho &= \int_{\Omega} s(x,0) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,0) v(x) \, ds \\
+(u_1,v)_\mu &= (u_0,v)_\mu + \Delta t (w_0,v)_\mu + \frac{\Delta t^2}{2}(\partial_t^2 u_0,v)_\mu \\
+(u_1,v)_\mu &= (u_0,v)_\mu + \Delta t (w_0,v)_\mu + \frac{\Delta t^2}{2} (\int_{\Omega} s(x,0) v(x) \, dx + \int_{\partial \Omega} \frac{1}{\rho(x)} g(x,0) v(x) \, ds - (\nabla u_0, \nabla v)_\rho ) \\
+a(u_1,v) &= l(v)
+\end{align}
+++++
+
+And this can be computed using feelpp.
+
+=== CFL Condition
+
+In order to ensure stability of the scheme, we need to ensure that the CFL condition is satisfied:
+[stem]
+++++
+\begin{align}
+c \frac{\Delta t}{h} &\leq CFL \\
+\Delta t &\leq CFL \frac{h}{c}
+\end{align}
+++++
+
+where stem:[CFL] is a number that can be found in the literature and stem:[c] is the maximum speed of the wave. In our case, we chose stem:[CFL = 1.0].
+
+== Implementation
+
+=== Test Cases
+
+==== Square Domain
+
+For testing purposes, we set the following parameters:
+[stem]
+++++
+\begin{align}
+\Omega &= [0,2] \times [0,2] \\
+\rho(x,y) &= 1 \\
+c(x,y) &= 1 \\
+s(x,y,t) &= 0 \\
+g(x,y,t) &= 0 \\
+u_0(x,y) &= 0.3 \exp(-((x-1.0)^2+(y-1.0)^2)/(2*0.05^2)) \\
+w_0(x,y) &= 0
+\end{align}
+++++
+
+These are defined in the json file, as are the time-stepping parameters:
+.JSON Congiguration File
+[source,json]
+----
+{
+    "Name": "Square 2D",
+    "ShortName": "square2d",
+    "Models": {
+        "wave": {
+            "name": "Omega"
+        }
+    },
+    "Meshes": {
+        "wave": {
+            "Import": {
+                "filename": "$cfgdir/square2d.geo",
+                "partition": 0,
+                "h": 0.03
+            }
+        }
+    },
+    "Spaces": {
+        "wave": {
+            "Domain": {
+
+
+            }
+        }
+    },
+    "TimeStepping":
+    {
+        "wave" :{
+            "steady": false,
+            "order" : 2,
+            "start": 0.0,
+            "end": 4,
+            "step": 0.0075
+        }
+    },
+    "InitialConditions": {
+        "wave": {
+            "pressure": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.3*exp(-((x-1.0)^2+(y-1.0)^2)/(2*0.05^2)):x:y"
+                    }
+                }
+            },
+            "velocity": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.0"
+                    }
+                }
+            }
+        }
+    },
+    "BoundaryConditions": {
+        "wave": {
+            "flux": {
+                "Gamma": {
+                    "expr": "0.0"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "wave": {
+            "c": 1.0,
+            "rho": "1.0",
+            "mu": "1.0",
+            "s": "0.0"
+        }
+    }
+}
+----
+
+All four functions stem:[S], stem:[u_0], stem:[w_0] and stem:[g] are defined as constant expressions, but can be accessed as functions of the domain as follows:
+[source,cpp]
+----
+auto f0_ = expr( specs_["/InitialConditions/wave/pressure/Expression/Omega/expr"_json_pointer].get<std::string>() )
+----
+
+Now we can start initializing the problem. We start by defining the domain and the function spaces, and then u_ and v_:
+[source,cpp]
+----
+mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/wave/Import/filename"_json_pointer].get<std::string>(), _h = H);
+Xh_ = Pch<Order>(mesh_);
+u_ = Xh_->element();
+v_ = Xh_->element();
+
+a_ = form2( _test = Xh_, _trial = Xh_ );
+at_ = form2( _test = Xh_, _trial = Xh_ );
+l_ = form1( _test = Xh_ );
+lt_ = form1( _test = Xh_ );
+----
+
+We verify the CFL condition:
+[source,cpp]
+----
+double C = specs_["/Parameters/wave/c/expr"_json_pointer].get<double>();
+time_step = std::min(time_step, H/C);
+----
+
+We then proceed with the initialization of u0_ and w0_:
+[source,cpp]
+----
+auto u0_ = Xh_->element();
+u0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/pressure/Expression/Omega/expr"_json_pointer].get<std::string>() ));
+auto w0_ = Xh_->element();
+w0_.on(_range = elements(mesh_), _expr = expr( specs_["/InitialConditions/wave/velocity/Expression/Omega/expr"_json_pointer].get<std::string>() ));
+----
+
+Finally, we load all the functions from the json file in order to define and initialize the bilinear and linear forms to solve for the unknown stem:[u_1]:
+[source,cpp]
+----
+auto Mu = specs_["/Parameters/wave/mu"_json_pointer].get<std::string>();
+auto Rho = specs_["/Parameters/wave/rho"_json_pointer].get<std::string>();
+auto S = specs_["/Parameters/wave/s"_json_pointer].get<std::string>();
+auto G = specs_["/BoundaryConditions/wave/flux/Gamma/expr"_json_pointer].get<std::string>();
+mu = expr(Mu);
+rho = expr(Rho);
+s = expr(S);
+g = expr(G);
+
+// Compute u1_
+a_.zero();
+l_.zero();
+a_ += integrate( _range = elements(mesh_), _expr = 1/mu * idt(u_) * id(v_) );
+l_ += integrate( _range = elements(mesh_),
+        _expr = 1/mu * idv(u0_) * id(v_)
+        + expr(bdf_->timeStep()) * 1/mu * idv(w0_) * id(v_)
+        + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * s * id(v_) / 2
+        + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * -1/mu * inner(gradv(u0_),gradv(v_)) /2);
+l_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * 1/rho * g * id(v_) / 2);
+a_.solve( _rhs = l_, _solution = u_ );
+
+// Initialize bdf
+bdf_->initialize( u0_ );
+bdf_->shiftRight( u_ );
+----
+
+The last two lines initialize our BDF object, used to hold the two previous solutions, and then shift the current solution to the right, so that we can start the time loop, which solves the problem for all the time steps:
+[source,cpp]
+----
+template <int Dim, int Order>
+void Wave<Dim, Order>::timeLoop()
+{
+    // time loop
+    for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
+    {
+        at_ += integrate( _range = elements(mesh_), _expr = (1/mu) * idt(u_) * id(v_) );
+        auto un = bdf_->unknown(0);
+        auto un_1 = bdf_->unknown(1);
+        lt_ += integrate( _range = elements(mesh_),
+                          _expr = (1/mu) * (2 * idv(un) - idv(un_1) ) * id(v_)
+                          + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * ((-1)/mu) * inner(gradv(un), grad(v_))
+                          + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * s * id(v_));
+        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * (1/rho) * g * id(v_));
+
+        at_.solve( _rhs = lt_, _solution = u_ );
+
+        this->exportResults();
+
+        at_.zero();
+        lt_.zero();
+    }
+}
+----
+
+===== Execute the code
+
+In order to execute the code, one has to build the project using the default setting. Then, when located at the root of the repository, one can execute the following command:
+[source,bash]
+----
+cd build/default/src &&
+./feelpp_fs_wave --config-file ../../../src/cases/wave/square2d/squared2d.cfg
+----
+
+The results are automatically exported to the main feelppdb database, a folder which location is printed in the terminal at the end of the execution. The results can be visualized by importing them into paraview.
+
+.Results of FEM on the testcase
+video::zfkrLn5-4qY[youtube, width=1216, height=540]
+
+==== Urban Area
+
+We can also test the code on a more complex domain, such as the urban area.
+Here we have a geometry of an urban area with the following dimension
+stem:[170 \times 200 \times 60].
+
+In this case, we set the following parameters :
+
+[stem]
+++++
+\begin{align}
+\rho(x,y,z) &= 1 \\
+c(x,y,z) &= 343 \\
+s(x,y,z,t) &= 0 \\
+g(x,y,z,t) &= 0 \\
+u_0(x,y,z) &= \exp(-((x-100.0)^2+(y-85.0)^2+(z-25.0)^2)/(2*0.5^2)) \\
+w_0(x,y,z) &= 0
+\end{align}
+++++
+
+These are defined in the associated json file as follows:
+.JSON Congiguration File
+[source,json]
+----
+{
+    "Name": "Doua",
+    "ShortName": "Doua",
+    "Models": {
+        "wave": {
+            "name": "Omega"
+        }
+    },
+    "Meshes": {
+        "wave": {
+            "Import": {
+                "filename": "$cfgdir/Doua_phy_names_hplus.geo",
+                "partition": 0,
+                "h": 0.5
+            }
+        }
+    },
+    "Spaces": {
+        "wave": {
+            "Domain": {
+
+
+            }
+        }
+    },
+    "TimeStepping":
+    {
+        "wave" :{
+            "steady": false,
+            "order" : 2,
+            "start": 0.0,
+            "end": 4,
+            "step": 0.01
+        }
+    },
+    "InitialConditions": {
+        "wave": {
+            "pressure": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "0.0"
+                    }
+                }
+            },
+            "velocity": {
+                "Expression": {
+                    "Omega": {
+                        "expr": "1.0*exp(-((x-100.0)^2+(y-85.0)^2+(z-25.0)^2)/(2*0.5^2)):x:y:z"
+                    }
+                }
+            }
+        }
+    },
+    "BoundaryConditions": {
+        "wave": {
+            "flux": {
+                "Gamma": {
+                    "expr": "0.0"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "wave": {
+            "c": 343,
+            "rho": "1.0",
+            "mu": "117649.0",
+            "s": "0.0"
+        }
+    }
+}
+----
+
+We use the same C++ code as in the previous test case (Square Domain), with the exception of the value of the constant `FEELPP_DIM` in the source code (`wave.hpp`). In the previous test case, it was set to `2`, reflecting a two-dimensional scenario. In this case, however, we must set it to `3` since we are working in a three-dimensional space.
+
+We can remark that stem:[mu = 117649]. It is because of CFL condition.
+As reminder, stem:[\Delta t \leq CFL \frac{h}{c}]. We chose stem:[CFL=1]
+and stem:[\Delta t = \frac{h}{c}]
+
+===== Execute the code
+
+To execute the code, one has to build the project using the default
+setting as explained in the previous test case. Then one can execute
+the following command :
+
+[source,bash]
+----
+cd build/default/src &&
+./feelpp_fs_wave --config-file ../../../src/cases/wave/urban_area/Doua_phy_names_hplus.cfg
+----
+
+.Results of FEM on the testcase
+video::p41gEtOZodI[youtube, width=1216, height=540]

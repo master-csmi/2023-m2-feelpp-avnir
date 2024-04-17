@@ -1,0 +1,136 @@
+= Spectral Element Method
+Obèd SABA
+
+== Introduction 
+
+The modeling and simulation of acoustic waves present a significant challenge, especially when dealing with complex geometries or high frequencies. The equations of acoustic waves, which describe the propagation of sound in various mediums, require sophisticated numerical methods for accurate and efficient resolution. Among these methods, hexahedral finite element techniques stand out for their flexibility and power.
+
+Among the methods used to simulate these waves, finite element methods, particularly with hexahedral elements, are particularly effective. They are well-suited to modeling complex shapes and handling a wide range of sound frequencies, which is crucial for practical applications in acoustics.
+
+We consider the following problem in arbitrary dimension (stem:[d = 2] or stem:[3]):
+
+Find stem:[p : \Omega \times [0, T \] \rightarrow \mathbb{R}] such that:
+
+[stem]
+++++
+\begin{align*}
+\mu \frac{\partial^2 p}{\partial z^2} (x,t) - \nabla \cdot \left( \frac{1}{\rho} \nabla p \right) (x,t) &= f(x,t) \qquad \text{ in } \Omega \times [0, T], \\
+p(x,t) &= 0 \qquad \text{ on } \partial\Omega \times [0, T], \\
+p(x,0) &= 0 \qquad \text{ in } \Omega, \\
+\frac{\partial p}{\partial t}(x,0) &= 0 \qquad \text{ in } \Omega,
+\end{align*}
+++++
+
+where:
+
+* stem:[p] represents the pressure in the fluid,
+* stem:[\Omega] is an open set in stem:[\mathbb{R}^d],
+* stem:[x = (x_i, \ldots, x_d)] denotes the coordinates in the canonical basis of stem:[\mathbb{R}^d],
+* stem:[\rho] is the mass density of the fluid medium, expressed in stem:[kg.m^{-3}],
+* stem:[\mu] is the modulus of compressibility of the medium, expressed in Pa, and satisfies: stem:[\mu = \rho c^2] where stem:[c] is the speed of the wave in the medium (in stem:[m.s^{-1}]).
+
+
+== Introduction to hexahedral finite element methods
+
+We consider:
+
+* The space stem:[C^0(\Omega)] of continuous functions on stem:[\Omega].
+* A partition of stem:[\Omega] into hexahedrons: stem:[\mathcal{T} = \{ \Omega_k \}_{k=1}^{N}], where the set of hexahedrons forms a conforming mesh of the domain (see Figure 1.1 for an example when stem:[d = 2]),
+* The unit cube stem:[K = [0, 1\]^d] and stem:[\hat{x} = (\hat{x}_i)_{i=1..d}] the associated coordinate system,
+* stem:[F], the vectorial application transforming stem:[K] in stem:[\Omega_k] (see Figure 1.2 for stem:[d = 2]),
+* The space stem:[Q_r(K)] of polynomials with real coefficients and variables in stem:[K], where each variable is of degree less than or equal to stem:[r], such that:
+
+[stem]
+++++
+\begin{align*}
+Q_r(K) = \{ \sum_{\mathbf{l} \in \{0, \ldots, r\}^d} a_{\mathbf{l}} \prod_{i=1}^{d} \hat{x}_i^{l_i} \bigg| a_{\mathbf{l}} \in \mathbb{R} \text{ where } \mathbf{l} &= (l_1, \ldots, l_d) \in \{0, \ldots, r\}^d \}
+\end{align*}
+++++
+
+* The approximation space
+
+[stem]
+++++
+\begin{align*}
+U^d_r = \{ \phi \in C^0(\Omega) \text{ such that } \phi|_{\Omega_k} \circ F_k \in Q_r(K) \text{ and } \phi &= 0 \text{ on } \partial\Omega \}
+\end{align*}
+++++
+
+.A figure of a mesh in 2D
+image::ROOT:quadrangle1.png[quadrangle1,500,200]
+
+.A figure of the mapping F
+image::ROOT:quadrangle2.png[quadrangle2,500,200]
+
+=== Spectral finite element method
+
+By multiplying our equation by a test function stem:[\phi] defined on stem:[\Omega] and integrating by parts, we obtain the variational formulation:
+
+Find stem:[p \in L^\infty(0, T; H^1_0(\Omega))] such that:
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial^2}{\partial t^2} \int_{\Omega} \frac{1}{\mu} p \phi \, dx + \int_{\Omega} \frac{1}{\rho} \nabla p \cdot \nabla \phi \, dx &= \int_{\Omega} f \phi \, dx \qquad \forall \phi \in H^1_0(\Omega).
+\end{align*}
+++++
+
+We then approximate the solution stem:[p] by a function stem:[p_h] in the space stem:[U^d_r] and we obtain the following discrete problem:
+
+Find stem:[p_h \in L^\infty(0, T; U^d_r)] such that:
+
+[stem]
+++++
+\begin{align*}
+\frac{\partial^2}{\partial t^2} \int_{\Omega} \frac{1}{\mu} p_h \phi_h \, dx + \int_{\Omega} \frac{1}{\rho} \nabla p_h \cdot \nabla \phi_h \, dx &= \int_{\Omega} f \phi_h \, dx \qquad \forall \phi_h \in U^d_r. \\
+p_h(x,0) &= 0 \qquad \forall x \in \Omega, \\
+\frac{\partial p_h}{\partial t}(x,0) &= 0 \qquad \forall x \in \Omega.
+\end{align*}
+++++
+
+The resulting mass matrix becomes densely populated as the simulation space expands and the order of approximation increases. This poses a double problem: a high computational load for the inversion of the matrix at each time step, and substantial data storage if we choose to retain the inverse of the mass matrix. These constraints underline the need for a more efficient method of handling large matrices in the context of acoustic simulation.
+
+One solution to this problem is the use of Legendre-Gauss-Lobatto quadrature points for interpolation and the calculation of matrices by Gauss-Lobatto numerical integration, leading to mass condensation and enabling the use of an explicit scheme. This method is known as the "spectral finite element method". So the important point of this method is to make the interpolation points coincide with the quadrature points of the integration formulas.
+
+== The spectral mixed finite element method
+
+We will reduce the storage of the stiffness matrix involved in the spectral finite element method by using a mixed form of equation.
+
+=== Setting up a mixed formulation
+We can write the equation in the following mixed forms:
+
+* stem:[\textit{System of first order equations}]:
+
+[stem]
+++++
+\begin{align*}
+\frac{1}{\mu}\frac{\partial p}{\partial t} - \nabla \cdot v &= F \qquad \text{ in } \Omega \times (0,T) \\
+\rho \frac{\partial v}{\partial t} - \nabla p &= 0 \qquad \text{ in } \Omega \times (0,T) \\
+p &= 0 \qquad \text{ on } \partial\Omega \times (0,T) \\
+p(x,0) &= 0 \qquad \text{ in } \Omega \\
+v(x,0) &= 0 \qquad \text{ in } \Omega 
+\end{align*}
+++++
+Where stem:[F] is the time primitive of the second member and stem:[v] is the velocity of the fluid.
+
+* stem:[\textit{System of second order equations}]:
+
+[stem]
+++++
+\begin{align*}
+\frac{1}{\mu}\frac{\partial^2 p}{\partial t^2} - \nabla \cdot w &= f \qquad \text{ in } \Omega \times (0,T) \\
+\rho w - \nabla p &= 0 \qquad \text{ in } \Omega \times (0,T) \\
+p &= 0 \qquad \text{ on } \partial\Omega \times (0,T) \\
+p(x,0) &= 0 \qquad \text{ in } \Omega \\
+w(x,0) &= 0 \qquad \text{ in } \Omega
+\end{align*}
+++++
+Where stem:[w] is the acceleration of the fluid.
+
+== References
+
+* [1] Sandrine Fauqueux. Eléments finis mixtes spectraux et couches absorbantes parfaitement adaptées pour la propagation d’ondes élastiques en régime transitoire. Modélisation et simulation. ENSTA ParisTech, 2003. Français. NNT : 2003PA090002. tel-00007445
+* [2] Florent Pled, Christophe Desceliers. Review and Recent Developments on the Perfectly Matched
+Layer (PML) Method for the Numerical Modeling and Simulation of Elastic Wave Propagation in
+Unbounded Domains. Archives of Computational Methods in Engineering, 2022, 10.1007/s11831-
+021-09581-y. hal-03196974

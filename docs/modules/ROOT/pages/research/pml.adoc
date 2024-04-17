@@ -1,0 +1,345 @@
+= Perfectly Matched Layer for the Wave Equation
+Obèd SABA
+
+== Introduction
+
+Acoustic wave propagation in urban environments is a complex and vital field of study with applications spanning urban engineering, environmental acoustics, and urban planning. The ability to predict and analyze sound diffusion in cityscapes is crucial for designing living environments that are both comfortable and compliant with noise regulations. However, accurately modeling the spread of sound waves faces significant challenges due to the diversity of urban structures, the interaction of waves with various obstacles, and the need to simulate extensive open spaces.
+
+Against this backdrop, the adoption of advanced numerical methods such as Perfectly Matched Layers stem:[\texttt{(PML)}] has emerged as a solution for absorbing acoustic waves at the computational domain boundaries, thereby simulating a semi-infinite medium without spurious reflections. Originally introduced in the context of stem:[\texttt{Maxwell}]'s equations, PMLs have since been adapted and refined for a wide array of wave physics applications.
+
+This report details the development and implementation of a stem:[\texttt{Feel++}]-based model for the study of acoustic wave propagation in a urban neighborhood, modeled as a homogenous medium at the scale of a city block. We will delve into the underlying theory of stem:[\texttt{PMLs}] and their integration into the acoustic wave equation, with a focus on the non-reflecting conditions of the waves. 
+
+Acoustic wave propagation is given by the following equation:
+[stem]
+++++
+\frac{1}{\mu}\frac{\partial^2 p}{\partial t^2} - \nabla \cdot \left( \frac{1}{\rho} \nabla p \right) = \frac{\partial F}{\partial t}
+++++
+
+For the sake of simplicity, we will introduce the stem:[\texttt{PMLs}] to the first-order acoustic system in time:
+[stem]
+++++
+\begin{align*}
+\frac{1}{\mu}\frac{\partial p}{\partial t} - \nabla \cdot v &= F \qquad \text{ in } \Omega \times (0,T) \\
+\rho \frac{\partial v}{\partial t} - \nabla p &= 0 \qquad \text{ in } \Omega \times (0,T) \\
+p(x,0) &= 0 \qquad \text{ in } \Omega \\
+v(x,0) &= 0 \qquad \text{ in } \Omega 
+\end{align*}
+++++
+
+where stem:[p] is the acoustic pressure, stem:[v] is the acoustic velocity, stem:[\mu] is the dynamic viscosity, stem:[\rho] is the density, and stem:[F] is the source term. 
+
+Initially, we implement a Perfectly Matched Layer stem:[\texttt{(PML)}] formulation that is of order stem:[d] in time. Assuming the differentiability of the absorption coefficients, we demonstrate the feasibility of achieving an optimal first-order system in time.
+
+== Setting up a formulation in PML
+
+We now revisit the PML method that aims at constructing artificial layers (of finite thickness) surrounding the physical bounded domain stem:[\Omega_{BD}] and designed in such a way that the incoming waves (entering into the layers) are not reflected at the interface with the physical domain and decay exponentially into them.
+In the following, we implicitly assume that all the outgoing waves (leaving the physical domain of interest) correspond to purely forward propagating waves in the direction normal to the interface, i.e. there is no backward propagating waves or evanescent waves.
+
+We consider a bounded Cartesian domain stem:[\Omega_{BD} = [-l_i,l_i \]^d] surrounded by an artificial absorbing layer (the stem:[\texttt{PML}] region) stem:[\Omega_{PML} = [-l_i - h_i, l_i + h_i \]^d \setminus \Omega_{BD}] with stem:[h_i] the thickness of the stem:[\texttt{PML}] layer. The stem:[\texttt{PML}] region stem:[\Omega_{PML}] is divided into stem:[d] subdomains stem:[\Omega_i] with stem:[i = 1, \dots, d] such that stem:[\Omega_i = \{x \in \Omega_{PML} ; |x_i| > l_i \}] and the outgoing propagative waves are attenuated in the stem:[xi]-direction within stem:[\texttt{PML}] subregions stem:[\Omega_i].
+
+.A Illustration of the PML region in 2D
+image::ROOT:pml_fig.png[pml_fig,500,200]
+
+Physical bounded domain stem:[\Omega_{BD}] surrounded by an artificial stem:[\texttt{PML}] region stem:[\Omega_{PML} = \cup_{i=1}^d \Omega_i] divided into stem:[d] overlapping subregions stem:[\Omega_i] with interface stem:[\Gamma = \partial\Omega_{BD} \cap \partial\Omega_{PML}] and exterior boundary stem:[\Gamma_{ext} = \partial\Omega_{PML} \setminus \Gamma] .
+
+We denote by stem:[\Gamma = \partial\Omega_{BD} \cap \partial\Omega_{PML}] and stem:[\Gamma_i = \partial\Omega_{BD} \cap \partial\Omega_{i}] , the interface between the physical domain stem:[\Omega_{BD}] and the PML region stem:[\Omega_{PML}] (resp. the PML subregion stem:[\Omega_{i}]) , and by stem:[n = n_i e_i] the unit normal vector to stem:[\Gamma] pointing outward stem:[\Omega_{BD}] . Furthermore, we define the entire domain stem:[\Omega = \Omega_{BD} \cup \Omega_{PML}] as the disjoint union between stem:[\Omega_{BD}] and stem:[\Omega_{PML}] , and we denote by stem:[\Gamma_{ext}] the part of its boundary stem:[\partial\Omega] that coincides with the exterior boundary of stem:[\Omega_{PML}] , that is stem:[\Gamma_{ext} = \partial\Omega_{PML} \setminus \Gamma \cup \Gamma_{free}] , where stem:[\Gamma_{free}] stands for the possible free surfaces in the case where a semi-infinite medium with free-surface boundary conditions is considered.
+
+=== Complex coordinate stretching
+
+In the frequency domain, the stem:[\texttt{PML}] method consists in analytically stretching one or more real spatial coordinate(s) of the physical wave equations into the complex plane stem:[\mathcal{C}], the ones corresponding to the direction(s) along which the outwardly propagating waves have to be attenuated in the absorbing layers. In the following, for any complex number stem:[z \in \mathbb{C}], we denote by stem:[\mathcal{R}_e(z)] and stem:[\mathcal{I}_m(z)] the real and imaginary parts of stem:[z] respectively.
+
+Following the complex coordinate stretching, we introduce a complex change stem:[\tilde{x}_j] defined by:
+[stem]
+++++
+\begin{align*}
+\tilde{x}_j &= x_j + \frac{i}{\omega} \int_0^{x_j} \tau_j(s) ds
+\end{align*}
+++++
+
+where the functions stem:[\tau_j] , ranging from 1 to d, are continuous, positive functions that depend only on stem:[x_j] and are zero in the physical domain (i.e., for negative stem:[x_j] ). In our case, we will further assume that these functions are differentiable and have continuous derivatives (thus zero in the physical domain).
+
+The functions stem:[\tau_j] are called absorption coefficients following stem:[x_j].
+
+=== Implementation steps
+
+For the implementation of the formulation in the stem:[\texttt{PMLs}], we will proceed as follows:
+
+. Transition to the frequency domain through the application of the Fourier transform in time.
+. Extension of the equations into the complex space thanks to the new coordinate system stem:[(\tilde{x}_j)_{j=1..d}].
+. Introduction of the complex parameter for the reinterpretation of the system in the form of partial differential equations in stem:[(x_j)_{j=1..d}].
+. Introduction of new unknowns in order to obtain a system that involves only positive powers of stem:[-i\omega], the goal being to reinterpret the obtained system in the form of temporal partial differential equations.
+. Obtain the system to be solved in stem:[\texttt{PML}] by applying the inverse Fourier time Fourier transform to the system obtained in step 4.
+
+==== Step 1: Transformation to the Frequency Domain
+
+Setting aside the initial conditions and the source function located in the physical domain, we proceed with a transformation to the frequency domain. This yields:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \nabla \cdot \hat{v} &= 0,
+\label{eq:3.1}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \rho \hat{v} - \nabla \hat{p} &= 0
+\label{eq:3.2}
+\end{align}
+++++
+
+where stem:[\hat{p} = \mathcal{F}_t(p)] and stem:[\hat{v} = \mathcal{F}_t(v)], stem:[\mathcal{F}_t] representing the Fourier transforms in time.
+
+==== Step 2:  Equation Extension with a New Coordinate System
+
+By extending these equations through a new coordinate system, we arrive at:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \tilde{\nabla} \cdot \hat{v} &= 0,
+\label{eq:3.3}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \rho \hat{v} &= \tilde{\nabla}\hat{p},
+\label{eq:3.4}
+\end{align}
+++++
+
+where stem:[\tilde{\nabla} = \left( \frac{\partial}{\partial \tilde{x}_j} \right)^*_{j=1..d}].
+
+==== Step 3: Transformation and Diagonal Matrix
+
+We observe:
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial \tilde{x}_j} &= \frac{i\omega}{i\omega - \tau_j} \frac{\partial}{\partial x_j}, \quad \forall j = 1..d.
+\label{eq:3.5}
+\end{align}
+++++
+
+As a result, stem:[\nabla] and stem:[\tilde{\nabla}] satisfy stem:[\nabla = M \tilde{\nabla}] where stem:[M] is a stem:[d \times d] diagonal matrix with diagonal elements stem:[M_{jj} = 1 + \frac{i\tau_j}{\omega}].
+
+The system is then rewritten as:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \sum_{k=1}^{d} M_{kk}^{-1} \frac{\partial \hat{v}_k}{\partial x_k} &= 0,
+\label{eq:3.6}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega M \rho \hat{v} &= \nabla \hat{p},
+\label{eq:3.7}
+\end{align}
+++++
+
+with stem:[\hat{v} = (\hat{v}_k)_{k=1..d}].
+
+==== Step 4: Focusing on the Second Term
+
+We shall now turn our attention to the second term of the second equation. Since stem:[M^{-1}] depends on stem:[(-i\omega + \tau_{x})^{-1}], this equation cannot be reinterpreted as a temporal partial differential equation after applying the inverse Fourier transform stem:[\mathcal{F}^{-1}_t] to the temporal domain. We then introduce stem:[\tilde{v}] such that:
+
+[stem]
+++++
+\begin{align}
+M\tilde{v} &= \hat{v}.
+\label{eq:3.8}
+\end{align}
+++++
+
+stem:[\tilde{v}_k] satisfies:
+
+[stem]
+++++
+\begin{align}
+M_{kk} \tilde{v}_k &= \hat{v}_k.
+\label{eq:3.9}
+\end{align}
+++++
+
+Utilizing the fact that stem:[M_{kk} = 1 + \frac{i\tau_k}{\omega}] and considering that the functions stem:[\tau_k] depend only on stem:[x_k], we derive:
+
+[stem]
+++++
+\begin{align}
+\frac{\partial \hat{v}_k}{\partial x_k} &= M_{kk} \frac{\partial \tilde{v}_k}{\partial x_k} + \frac{dM_{kk}}{dx_k} \tilde{v}_k,
+\label{eq:3.10}
+\end{align}
+++++
+
+which simplifies to:
+
+[stem]
+++++
+\begin{align}
+M_{kk}^{-1} \frac{\partial \hat{v}_k}{\partial x_k} &= \frac{\partial \tilde{v}_k}{\partial x_k} + M_{kk}^{-1} \frac{dM_{kk}}{dx_k} \tilde{v}_k.
+\label{eq:3.11}
+\end{align}
+++++
+
+Rewriting system, we get:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu} \hat{p} - \nabla \cdot \tilde{v} - \sum_{k=1}^{d} M_{kk}^{-1} \frac{dM_{kk}}{dx_k}\tilde{v}_k &= 0,
+\label{eq:3.12}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega M \rho M \tilde{v} &= \nabla \hat{p}.
+\label{eq:3.13}
+\end{align}
+++++
+
+We introduce new vector unknowns:
+
+[stem]
+++++
+\begin{align}
+M \hat{v}^o &= M' \tilde{v},
+\label{eq:3.14}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\hat{v}^* &= \rho M \tilde{v},
+\label{eq:3.15}
+\end{align}
+++++
+
+where stem:[M'] is the diagonal matrix of size stem:[d \times d] with diagonal elements stem:[M'_{kk} = \frac{dM_{kk}}{dx_k}].
+
+Let stem:[T] and stem:[T'] be two stem:[d \times d] diagonal matrices with respective diagonal elements stem:[T_{kk} = \tau_k] and stem:[T'_{kk} = \frac{d\tau_k}{dx_k}]. We establish the equalities:
+
+[stem]
+++++
+\begin{align}
+-i\omega M &= -i\omega I_{dd} + T
+\label{eq:3.16}
+\end{align}
+++++
+
+and
+
+[stem]
+++++
+\begin{align}
+-i\omega M' &= T'.
+\label{eq:3.17}
+\end{align}
+++++
+
+This allows us to reformulate the system as:
+
+[stem]
+++++
+\begin{align}
+-i\omega \frac{1}{\mu}\hat{p} - \nabla \cdot \tilde{v} - \sum_{k=1}^{d} \hat{v}^o \cdot \overrightarrow{e_k} &= 0,
+\label{eq:3.18}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \hat{v}^* + T \hat{v}^* &= \nabla \hat{p},
+\label{eq:3.19}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \hat{v}^o + T' \hat{v}^o &= T' \tilde{v}
+\label{eq:3.20}
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+-i\omega \hat{v}^* &= -i\omega \rho \tilde{v} + \rho T \tilde{v}.
+\label{eq:3.21}
+\end{align}
+++++
+
+where stem:[(\overrightarrow{e_k})_{k=1..d}] is the canonical basis of stem:[\mathbb{R}^d].
+
+==== Step 5: Inverse Fourier Transform
+
+We extend by continuity the equality stem:[\tilde{v} = \hat{v}= \mathcal{F}_t(v)], verified in the physical domain, to all the stem:[\texttt{PML}] and obtain stem:[\mathcal{F}^{-1}(\tilde{v}) = v] in stem:[\Omega \cup \Omega_{PML}]. Let us denote stem:[v^* = \mathcal{F}^{-1}_t(\hat{v}*)] and stem:[v^o = \mathcal{F}^{-1}_t(\hat{v}^o)].
+
+Applying the inverse Fourier transform stem:[\mathcal{F}^{-1}_t] to system , we obtain the system to be solved in the stem:[\texttt{PML}] to which we introduce Dirichlet boundary conditions on stem:[p]:
+
+[stem]
+++++
+\begin{align}
+\frac{1}{\mu} \frac{\partial p}{\partial t} - \nabla \cdot v - \sum_{k=1}^{d} v^o \cdot \overrightarrow{e_k} &= 0 \quad \text{in} \quad \Omega_{PML}, \\
+\frac{\partial v^*}{\partial t} + T v^* &= \nabla p \quad \text{in} \quad \Omega_{PML}, \\
+\frac{\partial v^o}{\partial t} + T' v^o &= T' v^o \quad \text{in} \quad \Omega_{PML}, \\
+\rho \frac{\partial v}{\partial t} + \rho T v &= \frac{\partial v^*}{\partial t} \quad \text{in} \quad \Omega_{PML},\\
+p &= 0 \quad \text{on} \quad \partial\Omega_{PML}.
+\label{eq:3.26}
+\end{align}
+++++
+
+In this formulation, we introduce an additional vector variable, together, these equations define the dynamics of the pressure and velocity fields in PMLs keeping the system of order 1 in time, allowing efficient wave absorption to minimize artificial reflections in numerical simulations.
+
+
+=== Variational Formulation
+
+We now introduce the variational formulation of the system in the stem:[\texttt{PMLs}]. We multiply the first equation by stem:[\phi], the second equation by stem:[\psi^*], the third equation by stem:[\psi^o], and the fourth equation by stem:[\psi] and integrate over the stem:[\texttt{PML}] region stem:[\Omega_{PML}]. With integration by parts and the use of the boundary conditions, we obtain:
+
+Find stem:[(p \in L^2(0,T;H_0^1(\Omega_{PML})))] and stem:[(v,v^*,v^o \in L^2(0,T;L^2([\Omega_{PML}\]^d)))] such that:
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} \frac{1}{\mu} p \phi dx + \int_{\Omega_{PML}} v \cdot \nabla \phi dx + \sum_{k=1}^{d} \int_{\Omega_{PML}} v^o \cdot \overrightarrow{e_k} \phi dx &= 0 \quad \forall \phi \in H_0^1(\Omega_{PML}),
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} v^* \psi^* dx + \int_{\Omega_{PML}} T v^* \psi^* dx &= \int_{\Omega_{PML}} \nabla p \psi^* dx \quad \forall \psi^* \in L^2([\Omega_{PML}]^d),
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} v^o \psi^o dx + \int_{\Omega_{PML}} T' v^o \psi^o dx &= \int_{\Omega_{PML}} T' v^o \psi^o dx \quad \forall \psi^o \in L^2([\Omega_{PML}]^d), 
+\end{align}
+++++
+
+[stem]
+++++
+\begin{align}
+\frac{\partial}{\partial t} \int_{\Omega_{PML}} \rho v \psi dx + \int_{\Omega_{PML}} \rho T v \psi dx &= \int_{\Omega_{PML}} \frac{\partial v^*}{\partial t} \psi dx \quad \forall \psi \in L^2([\Omega_{PML}]^d).
+\end{align}
+++++
+
+== References
+
+* [1] Sandrine Fauqueux. Eléments finis mixtes spectraux et couches absorbantes parfaitement adaptées pour la propagation d’ondes élastiques en régime transitoire. Modélisation et simulation. ENSTA ParisTech, 2003. Français. NNT : 2003PA090002. tel-00007445
+* [2] Florent Pled, Christophe Desceliers. Review and Recent Developments on the Perfectly Matched Layer (PML) Method for the Numerical Modeling and Simulation of Elastic Wave Propagation in Unbounded Domains. Archives of Computational Methods in Engineering, 2022, 10.1007/s11831-021-09581-y. hal-03196974
