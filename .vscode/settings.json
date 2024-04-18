@@ -87,7 +87,8 @@
         "observer_ptr": "cpp",
         "ref_ptr": "cpp",
         "texture": "cpp",
-        "csignal": "cpp"
+        "csignal": "cpp",
+        "*.ipp": "cpp"
     },
     "asciidoc.antora.enableAntoraSupport": true,
 }

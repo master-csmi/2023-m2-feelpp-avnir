@@ -54,12 +54,26 @@
             }
         }
     },
+    "Sensors":
+    {
+        "S1":
+        {
+            "location":[-0.906379,0.0430843]
+        },
+        "S2":
+        {
+            "location":[0.525,-0.783494]
+        },
+        "S3": {
+            "location": [-0.3,0.558846]
+        }
+    },
     "Meshes": {
         "elastic": {
             "Import": {
                 "filename": "$cfgdir/square.geo",
                 "partition": 0,
-                "h": 0.05
+                "h": 0.03
             }
         }
     },

@@ -42,3 +42,4 @@ Physical Curve ("load") = {4};
 Physical Point("S1") = {10};
 Physical Curve("fixed") = {2};
 Physical Surface("Steel") = {1};
+Mesh.ElementOrder=3;

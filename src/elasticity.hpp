@@ -39,6 +39,7 @@
 #include <feel/feelvf/measure.hpp>
 #include <feel/feelts/newmark.hpp>
 #include "wavelet.hpp"
+#include <typeinfo>
 
 
 namespace Feel
@@ -99,11 +100,46 @@ T get_value(const nl::json& specs, const std::string& path, const T& default_val
     return specs.contains(json_pointer) ? specs[json_pointer].get<T>() : default_value;
 }
 
+template <typename ... Ts>
+auto hoexporter( Ts && ... v )
+{
+    auto args = NA::make_arguments( std::forward<Ts>(v)... );
+    auto && mesh = args.get(_mesh);
+    bool fileset = args.get_else_invocable(_fileset,[](){ return boption(_name="exporter.fileset"); } );
+    using mesh_type = Feel::remove_shared_ptr_type<std::remove_pointer_t<std::decay_t<decltype(mesh)>>>;
+    using mesh_fragmentation_type = MeshFragmentation<mesh_type>;
+    auto && meshFragmentation = args.get_else_invocable(_byparts,[](){ return mesh_fragmentation_type(boption(_name="exporter.byparts")? mesh_fragmentation_type::Strategy::AllMarkedElements : mesh_fragmentation_type::Strategy::None ); } );
+
+    std::string const& name = args.get_else_invocable(_name,[](){ return Environment::about().appName(); } );
+    std::string const& geo = args.get_else_invocable(_geo, [](){ return soption(_name="exporter.geometry"); } );
+    auto && path = args.get_else_invocable(_path, [&name](){ return std::string((fs::path(Environment::exportsRepository())/fs::path(soption("exporter.format"))/name).string()); } );
+
+    using exporter_type = Exporter<mesh_type,1>;
+
+    auto e =  exporter_type::New( name,mesh->worldCommPtr() );
+    e->setPrefix( name );
+    e->setUseSingleTransientFile( fileset );
+    e->setMeshFragmentation( meshFragmentation );
+    if ( std::string(geo).compare("change_coords_only") == 0 )
+        e->setMesh( mesh, EXPORTER_GEOMETRY_CHANGE_COORDS_ONLY );
+    else if ( std::string(geo).compare("change") == 0 )
+        e->setMesh( mesh, EXPORTER_GEOMETRY_CHANGE );
+    else // default
+        e->setMesh( mesh, EXPORTER_GEOMETRY_STATIC );
+    e->setPath( path );
+    // addRegions not work with transient simulation!
+    //e->addRegions();
+    return e;
+    //return Exporter<Mesh<Simplex<2> >,1>::New();
+}
+
+
 template <int Dim, int Order>
 class Elastic
 {
 public:
-    using mesh_t = Mesh<Simplex<Dim>>;
+    using mesh_t = Mesh<Simplex<Dim,Order>>;
+    // using mesh_t = Mesh<Simplex<Dim>>;
     using space_t = Pchv_type<mesh_t, Order>;
     using space_ptr_t = Pchv_ptrtype<mesh_t, Order>; // Define the type for Pchv_ptrtype
     using element_t = typename space_t::element_type;
@@ -258,7 +294,9 @@ void Elastic<Dim, Order>::initialize()
     ts_ = newmark( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
 
 
-    e_ = Feel::exporter(_mesh = mesh_, _name = "elasticity");
+    e_ = hoexporter(_mesh = mesh_, _name = "elasticity");
+    //TODO: Display the numbers of degree of freedom and elements
+
     ////////////////////////////////////////////////////
     //          Newmark beta-model for dttun          //
     ////////////////////////////////////////////////////
@@ -290,10 +328,43 @@ void Elastic<Dim, Order>::initialize()
     lt_.zero();
 
     ts_->updateFromDisp(u_);
-    e_->step(0)->add( "displacement", u_ );
+    auto u_proj = project(_space=Xh_,_range=elements(mesh_),_expr=idv(u_));
+    e_->step(0)->add( "displacement", u_proj );
     e_->step(0)->add( "velocity", ts_->currentVelocity() );
     e_->step(0)->add( "acceleration", ts_->currentAcceleration() );
     e_->save();
+    for (auto [key, sensor] : specs_["/Sensors"_json_pointer].items())
+    {
+        // Create a csv file for each sensor
+        std::ofstream file;
+        file.open(fmt::format( "{}.csv", key ));
+        if (!file.is_open())
+        {
+            std::cerr << "Unable to open file : " << fmt::format( "{}.csv", key ) << std::endl;
+            return;
+        }
+        file << "time,";
+        for (int i = 0; i < FEELPP_DIM-1; i++)
+        {
+            // TODO: Use scientific notation and add the precision
+            file << "u(" << i << "),";
+        }
+        file << "u(" << FEELPP_DIM-1 << ")";
+        file << "\n";
+        auto loadpos = fmt::format( "/Sensors/{}/location", key );
+        std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
+        // std::cout << "p(0):" << p[0] << " p(1):" << p[1] << std::endl;
+        Eigen::Matrix<double,2,1> __x(p[0],p[1]);
+        file << 0 << ",";
+        for (int i = 0; i < FEELPP_DIM-1; i++)
+        {
+            file << u_(__x)(i,0,0) << ",";
+        }
+        file << u_(__x)(FEELPP_DIM-1,0,0);
+        file << "\n";
+        file.close();
+    }
+
 }
 
 template <int Dim, int Order>
@@ -577,9 +648,10 @@ void Elastic<Dim, Order>::timeLoop()
         at_.solve( _rhs = lt_, _solution = u_ );
 
         // Uncomment and export ts_
-        this->exportResults();
+        // this->exportResults();
         ts_->updateFromDisp(u_);
-        e_->step(ts_->time())->add( "displacement", u_ );
+        auto u_proj = project(_space=Xh_,_range=elements(mesh_),_expr=idv(u_));
+        e_->step(ts_->time())->add( "displacement", u_proj);
         e_->step(ts_->time())->add( "velocity", ts_->currentVelocity() );
         e_->step(ts_->time())->add( "acceleration", ts_->currentAcceleration() );
         e_->save();
@@ -591,6 +663,31 @@ void Elastic<Dim, Order>::timeLoop()
         lt_.zero();
 
         it += 1;
+
+        for (auto [key, sensor] : specs_["/Sensors"_json_pointer].items())
+        {
+            auto loadpos = fmt::format( "/Sensors/{}/location", key );
+            std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
+            // std::cout << "p(0):" << p[0] << " p(1):" << p[1] << std::endl;
+            Eigen::Matrix<double,2,1> __x(p[0],p[1]);
+            // std::cout << "u(" << p[0] << "," << p[1] <<"): " << u_(__x) << std::endl;
+            std::ofstream file;
+            file.open(fmt::format( "{}.csv", key ), std::ios::app);
+            // Check if the file is open
+            if (!file.is_open())
+            {
+                std::cerr << "Unable to open file : " << fmt::format( "{}.csv", key ) << std::endl;
+                return;
+            }
+            file << ts_->time() << ",";
+            for (int i = 0; i < FEELPP_DIM-1; i++)
+            {
+                file << u_(__x)(i,0,0) << ",";
+            }
+            file << u_(__x)(FEELPP_DIM-1,0,0);
+            file << "\n";
+            file.close();
+        }
     }
 }
 
