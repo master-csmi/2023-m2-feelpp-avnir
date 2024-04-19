@@ -220,6 +220,12 @@ void Elastic<Dim, Order>::initialize()
     else
         Xh_ = Pchv<Order>(mesh_); // Pchv : vectoriel
 
+    std::cout << "**** About the mesh ****" << std::endl;
+    std::cout << "degree of freedom = " << Xh_->nDof() << std::endl;
+    std::cout << "Nel = " << mesh_->numGlobalElements() << std::endl;
+    std::cout << "Number of points = " << mesh_->numGlobalPoints() << std::endl;
+    std::cout << "degree of freedom per points = " << Xh_->nDof()/(mesh_->numGlobalPoints()-1) << std::endl;
+
     u_ = Xh_->element();
     v_ = Xh_->element();
     dtun = Xh_->element();
