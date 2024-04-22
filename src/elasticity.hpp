@@ -138,8 +138,8 @@ template <int Dim, int Order>
 class Elastic
 {
 public:
-    using mesh_t = Mesh<Simplex<Dim,Order>>;
-    // using mesh_t = Mesh<Simplex<Dim>>;
+    // using mesh_t = Mesh<Simplex<Dim,Order>>;
+    using mesh_t = Mesh<Simplex<Dim>>;
     using space_t = Pchv_type<mesh_t, Order>;
     using space_ptr_t = Pchv_ptrtype<mesh_t, Order>; // Define the type for Pchv_ptrtype
     using element_t = typename space_t::element_type;
@@ -154,6 +154,7 @@ public:
     // Accessors
     nl::json const& specs() const { return specs_; }
     std::shared_ptr<mesh_t> const& mesh() const { return mesh_; }
+    std::shared_ptr<mesh_t> const& meshThin() const { return mesh_thin_; }
     space_ptr_t const& Xh() const { return Xh_; }
     element_t const& u() const { return u_; }
     element_t const& v() const { return v_; }
@@ -168,6 +169,7 @@ public:
     // Mutators
     void setSpecs(nl::json const& specs) { specs_ = specs; }
     void setMesh(std::shared_ptr<mesh_t> const& mesh) { mesh_ = mesh; }
+    void setMeshThin(std::shared_ptr<mesh_t> const& mesh) { mesh_thin_ = mesh; }
     void setU(element_t const& u) { u_ = u; }
 
     void initialize();
@@ -186,6 +188,7 @@ public:
 private:
     nl::json specs_;
     std::shared_ptr<mesh_t> mesh_;
+    std::shared_ptr<mesh_t> mesh_thin_;
     space_ptr_t Xh_;
     element_t u_, v_, dtun;
     form2_type a_, at_;
@@ -210,6 +213,7 @@ void Elastic<Dim, Order>::initialize()
     double H = specs_["/Meshes/elastic/Import/h"_json_pointer].get<double>();
     // Load mesh and initialize Xh, a, l, etc.
     mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/elastic/Import/filename"_json_pointer].get<std::string>(), _h = H);
+    mesh_thin_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/elastic/Import/filename"_json_pointer].get<std::string>(), _h = H);
     // define Xh on a marked region
     if ( specs_["/Spaces/elastic/Domain"_json_pointer].contains("marker") )
         Xh_ = Pchv<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/elastic/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
@@ -300,8 +304,7 @@ void Elastic<Dim, Order>::initialize()
     ts_ = newmark( _space = Xh_, _steady=steady, _initial_time=initial_time, _final_time=final_time, _time_step=time_step, _order=time_order );
 
 
-    e_ = hoexporter(_mesh = mesh_, _name = "elasticity");
-    //TODO: Display the numbers of degree of freedom and elements
+    e_ = Feel::exporter(_mesh = mesh_, _name = "elasticity");
 
     ////////////////////////////////////////////////////
     //          Newmark beta-model for dttun          //
@@ -537,7 +540,7 @@ void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a
                 std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
                 // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
                 std::string loadcsv = fmt::format( "/Models/elastic/loading/{}/parameters/csv", key );
-                std::cout << "loadcsv : " << specs_[nl::json::json_pointer( loadcsv )].get<std::string>() << std::endl;
+                // std::cout << "loadcsv : " << specs_[nl::json::json_pointer( loadcsv )].get<std::string>() << std::endl;
                 // Read the it line of the csv file
                 std::ifstream file(specs_[nl::json::json_pointer( loadcsv )].get<std::string>());
                 std::string line;
@@ -578,7 +581,7 @@ void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a
                     i++;
                 }
                 file.close();
-                std::cout << "e : " << e << std::endl;
+                // std::cout << "e : " << e << std::endl;
                 // e.append(std::to_string(force));
                 // e.append(",");
                 // for (int i = 1; i < FEELPP_DIM-1;i++)

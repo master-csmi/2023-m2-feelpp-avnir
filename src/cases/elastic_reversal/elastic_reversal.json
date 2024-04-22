@@ -14,7 +14,7 @@
                         "expr": "{1,0}", // {1e5,0}
                         "unit": "N",
                         "location": [-0.906379,0.0430843],
-                        "csv": "$cfgdir/Sensor1_reversed.csv"
+                        "csv": "S1_reversed.csv"
                     }
                 },
                 "S2": {
@@ -23,7 +23,7 @@
                         "expr": "{1,0}", // {1e5,0}
                         "unit": "N",
                         "location": [0.525,-0.783494],
-                        "csv": "$cfgdir/Sensor2_reversed.csv"
+                        "csv": "S2_reversed.csv"
                     }
                 },
                 "S3": {
@@ -32,7 +32,7 @@
                         "expr": "{1,0}", // {1e5,0}
                         "unit": "N",
                         "location": [-0.3,0.558846],
-                        "csv": "$cfgdir/Sensor3_reversed.csv"
+                        "csv": "S3_reversed.csv"
                     }
                 }
             }
@@ -85,7 +85,7 @@
             "Import": {
                 "filename": "$cfgdir/square_damaged.geo",
                 "partition": 0,
-                "h": 0.03
+                "h": 0.05
             }
         }
     },

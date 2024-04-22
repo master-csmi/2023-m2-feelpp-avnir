@@ -1,7 +1,7 @@
 //SetFactory("OpenCASCADE");
 
 // mesh size
-h = 1e-1;
+h = 1e-2;
 
 // square points
 Point(1) = {-1.0, -1.0, 0.0, h};
