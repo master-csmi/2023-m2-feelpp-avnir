@@ -1,7 +1,7 @@
 //SetFactory("OpenCASCADE");
 
 // mesh size
-h = 5e-2;
+h = 1e-1;
 
 // square points
 Point(1) = {-1.0, -1.0, 0.0, h};
@@ -15,9 +15,6 @@ Point(6) = {0.3, 0.3, 0.0, h};
 Point(7) = {0.3, 0.7, 0.0, h};
 Point(8) = {0.4, 0.7, 0.0, h};
 Point(9) = {0.4, 0.3, 0.0, h};
-
-// create a sensor
-Point(10) = {-0.9,0.,0.0,h};
 
 // square lines
 Line(1) = {1, 2};
@@ -36,15 +33,30 @@ Curve Loop(2) = {5, 6, 7, 8};
 // square surface
 Plane Surface(1) = {1};
 
-Physical Curve ("load") = {4};
-
-// square physical groups
-Physical Point("S1") = {10};
-Physical Curve("fixed") = {2};
-Physical Surface("Steel") = {1};
+Extrude {0, 0, 0.01} {
+  Surface{1}; 
+}
+Physical Curve(31) = {2, 20, 11, 16};
+//+
+Physical Surface("fixed") = {21};
 Mesh.ElementOrder=3;//+
+
+Physical Volume("Steel") = {1};
+//+
+Transfinite Surface {30} = {19, 15, 11, 10};
+//+
 Transfinite Surface {1} = {4, 3, 2, 1};
 //+
-Transfinite Curve {3, 2, 1, 4} = 200 Using Progression 1;
+Transfinite Surface {17} = {10, 11, 2, 1};
 //+
-Recombine Surface {1};
+Transfinite Surface {29} = {10, 19, 4, 1};
+//+
+Transfinite Surface {25} = {19, 15, 3, 4};
+//+
+Transfinite Surface {21} = {15, 3, 2, 11};
+//+
+Transfinite Curve {10, 1, 13, 4, 12, 3, 11, 2} = 200 Using Progression 1;
+//+
+Transfinite Curve {24, 20, 16, 15} = 1 Using Progression 1;
+//+
+Recombine Surface {30, 1, 17, 21, 25, 29};

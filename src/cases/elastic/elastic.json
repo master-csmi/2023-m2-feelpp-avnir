@@ -13,7 +13,7 @@
                     "parameters" : {
                         "expr": "{1,0}", // {1e5,0}
                         "unit": "N",
-                        "location": [-1.0,0.0]
+                        "location": [-1.0,0.0,0.0]
                     }
                 }
             }

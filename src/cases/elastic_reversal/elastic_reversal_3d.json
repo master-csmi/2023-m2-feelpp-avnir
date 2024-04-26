@@ -8,12 +8,31 @@
                 "Steel"
             ],
             "loading": {
-                "F1": {
-                    "type" : "Wavelet",
+                "S1": {
+                    "type" : "Sensor",
                     "parameters" : {
                         "expr": "{1,0,0}", // {1e5,0}
                         "unit": "N",
-                        "location": [-1.0,0.0]
+                        "location": [-0.5,0.5,0],
+                        "csv": "S1_reversed_order_1.csv"
+                    }
+                },
+                "S2": {
+                    "type" : "Sensor",
+                    "parameters" : {
+                        "expr": "{1,0,0}", // {1e5,0}
+                        "unit": "N",
+                        "location": [0,0,0],
+                        "csv": "S2_reversed_order_1.csv"
+                    }
+                },
+                "S3": {
+                    "type" : "Sensor",
+                    "parameters" : {
+                        "expr": "{1,0,0}", // {1e5,0}
+                        "unit": "N",
+                        "location": [-0.5,-0.5,0],
+                        "csv": "S3_reversed_order_1.csv"
                     }
                 }
             }
@@ -56,24 +75,17 @@
     },
     "Sensors":
     {
-        "S1":
+        "S1_origin":
         {
-            "location":[-0.5,0.5]
-        },
-        "S2":
-        {
-            "location":[0,0]
-        },
-        "S3": {
-            "location": [-0.5,-0.5]
+            "location":[-1.0,0.0,0.0]
         }
     },
     "Meshes": {
         "elastic": {
             "Import": {
-                "filename": "$cfgdir/square.geo",
+                "filename": "$cfgdir/parallelepiped_damaged.geo",
                 "partition": 0,
-                "h": 0.01
+                "h": 0.05
             }
         }
     },
@@ -91,7 +103,7 @@
             "steady": false,
             "order" : 2,
             "start": 0.0,
-            "end": 2e-4,
+            "end": 2e-3,
             "step": 2e-6
             // "end": 1.0,
             // "step": 1.95e-5
@@ -102,7 +114,7 @@
             "displacement": {
                 "Expression": {
                     "Omega": {
-                        "expr": "{0.0,0.0}"
+                        "expr": "{0.0,0.0,0.0}"
                     }
                 }
             }
@@ -113,7 +125,7 @@
             "Dirichlet" : {
                 "fixed" : {
                     "g" :{
-                        "expr" : "{0.0,0.0}"
+                        "expr" : "{0.0,0.0,0.0}"
                     }
                 }
             },
@@ -121,7 +133,7 @@
                 "Gamma_N" : {
                     "pure_traction" : {
                         "g" :{
-                            "expr" : "{0.0,0.0}"
+                            "expr" : "{0.0,0.0,0.0}"
                         }
                     }
                 }

@@ -271,12 +271,26 @@ void Elastic<Dim, Order>::initialize()
     std::cout << "**** Initialize Dirac **** \n" << std::endl;
     node_type n(FEELPP_DIM);
     n(0) = -1;
-    n(1) = 0.2312;
+    for (int i = 1; i < FEELPP_DIM; i++)
+        n(i) = 0.2312;
 
 
     std::cout << " n = " << n << "\n" << std::endl;
-    auto s_dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S", "{1e8,0}");
-    auto f_0 = form1( _test = Xh_, _vector = s_dirac->containerPtr() ); // contient la contribution du dirac
+    // if (Dim == 2)
+    // {
+    //     auto s_dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S", "{1e8,0}");
+    //     auto f_0 = form1( _test = Xh_, _vector = s_dirac->containerPtr() ); // contient la contribution du dirac
+    // }
+    // else if (Dim == 3)
+    // {
+    //     auto s_dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, "S", "{1e8,0,0}");
+    //     auto f_0 = form1( _test = Xh_, _vector = s_dirac->containerPtr() ); // contient la contribution du dirac
+    // }
+    // else
+    // {
+    //     std::cerr << "Dimension not supported" << std::endl;
+    //     return;
+    // }
 
     /////////////////////////////////////////////////
     //         Test using different dirac          //
@@ -363,7 +377,9 @@ void Elastic<Dim, Order>::initialize()
         auto loadpos = fmt::format( "/Sensors/{}/location", key );
         std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
         // std::cout << "p(0):" << p[0] << " p(1):" << p[1] << std::endl;
-        Eigen::Matrix<double,2,1> __x(p[0],p[1]);
+        Eigen::Matrix<double,Dim,1> __x;
+        for (int i = 0; i < Dim; i++)
+            __x(i) = p[i];
         file << 0 << ",";
         for (int i = 0; i < FEELPP_DIM-1; i++)
         {
@@ -425,18 +441,18 @@ void Elastic<Dim, Order>::processLoading(form1_type& l)
                 LOG( INFO ) << fmt::format( "Dirichlet conditions found" );
                 std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
                 // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
+                double force = wavelet(0);
                 std::string e = "{";
                 for (int i = 0; i < FEELPP_DIM-1;i++)
                 {
                     e.append("0,");
                 }
-                e.append("0}");
-                std::cout << e << std::endl;
+                e.append(std::to_string(wavelet(0)));
+                e.append("}");
+                // std::cout << e << std::endl;
+                // TODO: invert e and p, e is the expression of the force and p is the position of the force
                 auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
-                std::vector<double> p;
-                p.push_back(wavelet(0));
-                for (int i = 1; i<FEELPP_DIM; i++)
-                    p.push_back(0);
+                std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
                 node_type n(p.size());
                 for (int i = 0; i < p.size(); i++)
                     n(i) = p[i];
@@ -516,13 +532,12 @@ void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a
                 // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
                 double force = wavelet(t);
                 std::string e = "{";
-                e.append(std::to_string(force));
-                e.append(",");
-                for (int i = 1; i < FEELPP_DIM-1;i++)
+                for (int i = 0; i < FEELPP_DIM-1;i++)
                 {
                     e.append("0,");
                 }
-                e.append("0}");
+                e.append(std::to_string(wavelet(t)));
+                e.append("}");
                 // std::cout << e << std::endl;
                 // TODO: invert e and p, e is the expression of the force and p is the position of the force
                 auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
@@ -678,7 +693,9 @@ void Elastic<Dim, Order>::timeLoop()
             auto loadpos = fmt::format( "/Sensors/{}/location", key );
             std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
             // std::cout << "p(0):" << p[0] << " p(1):" << p[1] << std::endl;
-            Eigen::Matrix<double,2,1> __x(p[0],p[1]);
+            Eigen::Matrix<double,FEELPP_DIM,1> __x;
+            for (int i = 0; i < FEELPP_DIM; i++)
+                __x(i) = p[i];
             // std::cout << "u(" << p[0] << "," << p[1] <<"): " << u_(__x) << std::endl;
             std::ofstream file;
             file.open(fmt::format( "{}.csv", key ), std::ios::app);
