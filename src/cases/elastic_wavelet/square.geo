@@ -1,7 +1,7 @@
 //SetFactory("OpenCASCADE");
 
 // mesh size
-h = 1e-1;
+h = 1e-2;
 
 // square points
 Point(1) = {-1.0, -1.0, 0.0, h};
@@ -17,7 +17,7 @@ Point(8) = {0.4, 0.7, 0.0, h};
 Point(9) = {0.4, 0.3, 0.0, h};
 
 // create a sensor
-Point(10) = {0.1,0.1,0.0,h};
+Point(10) = {-0.9,0.,0.0,h};
 
 // square lines
 Line(1) = {1, 2};
@@ -42,3 +42,10 @@ Physical Curve ("load") = {4};
 Physical Point("S1") = {10};
 Physical Curve("fixed") = {2};
 Physical Surface("Steel") = {1};
+Mesh.ElementOrder=3;
+
+Transfinite Surface {1} = {4, 3, 2, 1};
+//+
+Transfinite Curve {3, 2, 1, 4} = 200 Using Progression 1;
+//+
+Recombine Surface {1};

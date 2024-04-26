@@ -16,9 +16,6 @@ Point(7) = {0.3, 0.7, 0.0, h};
 Point(8) = {0.4, 0.7, 0.0, h};
 Point(9) = {0.4, 0.3, 0.0, h};
 
-// create a sensor
-Point(10) = {0.1,0.1,0.0,h};
-
 // square lines
 Line(1) = {1, 2};
 Line(2) = {2, 3};
@@ -36,9 +33,12 @@ Curve Loop(2) = {5, 6, 7, 8};
 // square surface
 Plane Surface(1) = {1};
 
-Physical Curve ("load") = {4};
+Extrude {0, 0, 0.01} {
+  Surface{1}; 
+}
+Physical Curve(31) = {2, 20, 11, 16};
+//+
+Physical Surface("fixed") = {21};
+Mesh.ElementOrder=3;//+
 
-// square physical groups
-Physical Point("S1") = {10};
-Physical Curve("fixed") = {2};
-Physical Surface("Steel") = {1};
+Physical Volume("Steel") = {1};

@@ -8,12 +8,31 @@
                 "Steel"
             ],
             "loading": {
-                "F1": {
-                    "type" : "Dirac",
+                "S1": {
+                    "type" : "Sensor",
                     "parameters" : {
                         "expr": "{1,0}", // {1e5,0}
                         "unit": "N",
-                        "location": [-1.0,0.0,0.0]
+                        "location": [-0.906379,0.0430843],
+                        "csv": "S1_reversed.csv"
+                    }
+                },
+                "S2": {
+                    "type" : "Sensor",
+                    "parameters" : {
+                        "expr": "{1,0}", // {1e5,0}
+                        "unit": "N",
+                        "location": [0.525,-0.783494],
+                        "csv": "S2_reversed.csv"
+                    }
+                },
+                "S3": {
+                    "type" : "Sensor",
+                    "parameters" : {
+                        "expr": "{1,0}", // {1e5,0}
+                        "unit": "N",
+                        "location": [-0.3,0.558846],
+                        "csv": "S3_reversed.csv"
                     }
                 }
             }
@@ -54,10 +73,17 @@
             }
         }
     },
+    "Sensors":
+    {
+        "S1_origin":
+        {
+            "location":[-1.0,0.0]
+        }
+    },
     "Meshes": {
         "elastic": {
             "Import": {
-                "filename": "$cfgdir/square.geo",
+                "filename": "$cfgdir/square_damaged.geo",
                 "partition": 0,
                 "h": 0.05
             }
@@ -77,7 +103,7 @@
             "steady": false,
             "order" : 2,
             "start": 0.0,
-            "end": 2e-4,
+            "end": 2e-3,
             "step": 2e-6
             // "end": 1.0,
             // "step": 1.95e-5
