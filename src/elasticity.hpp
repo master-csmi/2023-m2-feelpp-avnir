@@ -30,6 +30,9 @@
 #include <feel/feelcore/ptreetools.hpp>
 #include <feel/feelcore/utility.hpp>
 #include <feel/feeldiscr/pch.hpp>
+#include <feel/feeldiscr/odh.hpp>
+#include <feel/feeldiscr/dh.hpp>
+#include <feel/feeldiscr/nch.hpp>
 #include <feel/feeldiscr/minmax.hpp>
 #include <feel/feeldiscr/sensors.hpp>
 #include <feel/feelfilters/exporter.hpp>
@@ -38,6 +41,10 @@
 #include <feel/feelvf/vf.hpp>
 #include <feel/feelvf/measure.hpp>
 #include <feel/feelts/newmark.hpp>
+#include <feel/feelpoly/dubiner.hpp>
+#include <feel/feelpoly/lagrange.hpp>
+#include <feel/feelpoly/raviartthomas.hpp>
+#include <feel/feelpoly/legendre.hpp>
 #include "wavelet.hpp"
 #include <typeinfo>
 
@@ -216,10 +223,12 @@ void Elastic<Dim, Order>::initialize()
     mesh_thin_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/elastic/Import/filename"_json_pointer].get<std::string>(), _h = H);
     // define Xh on a marked region
     if ( specs_["/Spaces/elastic/Domain"_json_pointer].contains("marker") )
-        Xh_ = Pchv<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/elastic/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
+        std::cout << "marker" << std::endl;
+        // Xh_ = Pchv<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/elastic/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
     // define Xh via a levelset phi where phi < 0 defines the Domain and phi = 0 the boundary
     else if (specs_["/Spaces/elastic/Domain"_json_pointer].contains("levelset"))
-        Xh_ = Pchv<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/elastic/Domain/levelset"_json_pointer].get<std::string>())));
+        std::cout << "levelset" << std::endl;
+        // Xh_ = Pchv<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/elastic/Domain/levelset"_json_pointer].get<std::string>())));
     // define Xh on the whole mesh
     else
         Xh_ = Pchv<Order>(mesh_); // Pchv : vectoriel

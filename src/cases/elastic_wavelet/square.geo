@@ -44,8 +44,8 @@ Physical Curve("fixed") = {2};
 Physical Surface("Steel") = {1};
 Mesh.ElementOrder=3;
 
-Transfinite Surface {1} = {4, 3, 2, 1};
+//Transfinite Surface {1} = {4, 3, 2, 1};
 //+
-Transfinite Curve {3, 2, 1, 4} = 200 Using Progression 1;
+//Transfinite Curve {3, 2, 1, 4} = 200 Using Progression 1;
 //+
-Recombine Surface {1};
+//Recombine Surface {1};

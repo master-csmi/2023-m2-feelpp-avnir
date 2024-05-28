@@ -38,10 +38,12 @@
 #include <feel/feelvf/measure.hpp>
 #include <feel/feelts/bdf.hpp>
 #include <feel/feeldiscr/sensors.hpp>
+#include <feel/feeldiscr/operatorinterpolation.hpp>
+#include "wavelet.hpp"
 
 namespace Feel
 {
-inline const int FEELPP_DIM=3;
+inline const int FEELPP_DIM=2;
 inline const int FEELPP_ORDER=1;
 
 static inline const bool do_print = true;
@@ -97,19 +99,23 @@ T get_value(const nl::json& specs, const std::string& path, const T& default_val
     return specs.contains(json_pointer) ? specs[json_pointer].get<T>() : default_value;
 }
 
-template <int Dim, int Order>
+template <int Dim, int Order, int OrderGeo=1>
 class Wave
 {
 public:
-    using mesh_t = Mesh<Simplex<Dim>>;
+    using mesh_t = Mesh<Simplex<Dim,Order,OrderGeo>>;
+    using mesh_P1_t = Mesh<Simplex<Dim,1,1>>;
     using space_t = Pch_type<mesh_t, Order>;
     using space_ptr_t = Pch_ptrtype<mesh_t, Order>; // Define the type for Pch_ptrtype
-    using element_ = typename space_t::element_type;
+    using space_P1_t = Pch_type<mesh_P1_t, 1>;
+    using space_P1_ptr_t = Pch_ptrtype<mesh_P1_t, 1>;
+    using element_ = typename space_P1_t::element_type;
     using form2_type = form2_t<space_t,space_t>; // Define the type for form2
     using form1_type = form1_t<space_t>; // Define the type for form1
     using bdf_ptrtype = std::shared_ptr<Bdf<space_t>>;
-    using exporter_ptrtype = std::shared_ptr<Exporter<mesh_t>>; // Define the type for exporter_ptrtype
+    using exporter_ptrtype = std::shared_ptr<Exporter<mesh_P1_t>>; // Define the type for exporter_ptrtype
     using expr_type = typename Feel::vf::Expr<Feel::vf::GinacEx<2>>; // Define the type for expr_type
+    using opI_type = I_t<space_t,space_P1_t>;
 
     Wave() = default;
     Wave(nl::json const& specs);
@@ -136,6 +142,7 @@ public:
     void initialize();
     void processMaterials();
     void processBoundaryConditions();
+    void processWavelet(form1_type& l, form2_type& a,double t, int it);
     void run();
     void timeLoop();
     void exportResults();
@@ -148,7 +155,9 @@ public:
 private:
     nl::json specs_;
     std::shared_ptr<mesh_t> mesh_;
+    std::shared_ptr<mesh_P1_t> mesh_P1_;
     space_ptr_t Xh_;
+    space_P1_ptr_t Xh_P1_;
     element_ u_, v_;
     form2_type a_, at_;
     form1_type l_, lt_;
@@ -159,31 +168,55 @@ private:
     node_type n;
     form1_type l_dirac_;
     bool dirac;
+    bool gamma;
+    bool abc;
+    bool bat;
+    bool circle;
+    std::shared_ptr<opI_type> Ih_;
 };
 
 // Constructor
-template <int Dim, int Order>
-Wave<Dim, Order>::Wave(nl::json const& specs) : specs_(specs)
+template <int Dim, int Order, int OrderGeo>
+Wave<Dim,Order, OrderGeo>::Wave(nl::json const& specs) : specs_(specs)
 {
     initialize();
 }
 
 // Initialization
-template <int Dim, int Order>
-void Wave<Dim, Order>::initialize()
+template <int Dim, int Order,int OrderGeo>
+void Wave<Dim, Order,OrderGeo>::initialize()
 {
     double H = specs_["/Meshes/wave/Import/h"_json_pointer].get<double>();
     // Load mesh and initialize Xh, a, l, etc.
     mesh_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/wave/Import/filename"_json_pointer].get<std::string>(), _h = H);
+    if constexpr (OrderGeo==1)
+    {
+        mesh_P1_ = mesh_;
+    }
+    else
+    {
+        mesh_P1_ = loadMesh( _mesh = new mesh_P1_t, _filename = specs_["/Meshes/wave/Import/filename"_json_pointer].get<std::string>(), _h = H);
+    }
     // define Xh on a marked region
     if ( specs_["/Spaces/wave/Domain"_json_pointer].contains("marker") )
+    {
         Xh_ = Pch<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/wave/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
+        Xh_P1_ = Pch<1>(mesh_P1_, markedelements(mesh_P1_, specs_["/Spaces/wave/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
+    }
     // define Xh via a levelset phi where phi < 0 defines the Domain and phi = 0 the boundary
     else if (specs_["/Spaces/wave/Domain"_json_pointer].contains("levelset"))
+    {
         Xh_ = Pch<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/wave/Domain/levelset"_json_pointer].get<std::string>())));
+        Xh_P1_ = Pch<1>(mesh_P1_, elements(mesh_P1_, expr(specs_["/Spaces/wave/Domain/levelset"_json_pointer].get<std::string>())));
+    }
     // define Xh on the whole mesh
     else
+    {
         Xh_ = Pch<Order>(mesh_);
+        Xh_P1_ = Pch<1>(mesh_P1_);
+    }
+
+    Ih_ = I( _domain = Xh_, _image = Xh_P1_ );
 
     u_ = Xh_->element();
     v_ = Xh_->element();
@@ -227,6 +260,8 @@ void Wave<Dim, Order>::initialize()
     rho = expr(Rho);
     s = expr(S);
     g = expr(G);
+
+    std::cout << mu << std::endl;
     // Dirac
     if ( specs_["/Parameters/wave"_json_pointer].contains("dirac") )
     {
@@ -240,6 +275,33 @@ void Wave<Dim, Order>::initialize()
     }
     else
         dirac = false;
+    if (specs_["/Parameters/wave"_json_pointer].contains("abc"))
+    {
+        auto variety = specs_["/Parameters/wave/abc"_json_pointer].get<std::string>();
+        if (variety == "circle")
+        {
+            circle = true;
+        }
+        else
+            circle = false;
+        abc = true;
+    }
+    else
+        abc = false;
+
+    if (specs_["/Parameters/wave"_json_pointer].contains("gamma"))
+    {
+        gamma = true;
+    }
+    else
+        gamma = false;
+
+    if (specs_["/Parameters/wave"_json_pointer].contains("bat"))
+    {
+        bat = true;
+    }
+    else
+        bat = false;
 
     // Compute u1_
     a_.zero();
@@ -281,12 +343,12 @@ void Wave<Dim, Order>::initialize()
     l_.zero();
     lt_.zero();
 
-    e_ = Feel::exporter(_mesh = mesh_);
+    e_ = Feel::exporter(_mesh = mesh_P1_);
 }
 
 // Process materials
-template <int Dim, int Order>
-void Wave<Dim, Order>::processMaterials()
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order, OrderGeo>::processMaterials()
 {
     for ( auto [key, material] : specs_["/Models/wave/Materials"_json_pointer].items() )
     {
@@ -304,8 +366,8 @@ void Wave<Dim, Order>::processMaterials()
 }
 
 // Process boundary conditions
-template <int Dim, int Order>
-void Wave<Dim, Order>::processBoundaryConditions()
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order, OrderGeo>::processBoundaryConditions()
 {
     // BC Neumann
     if ( specs_["/BoundaryConditions/wave"_json_pointer].contains( "flux" ) )
@@ -340,8 +402,8 @@ void Wave<Dim, Order>::processBoundaryConditions()
 }
 
 // Run method (main method to run Wave process)
-template <int Dim, int Order>
-void Wave<Dim, Order>::run()
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order, OrderGeo>::run()
 {
     std::cout << "\n***** Initialize *****" << std::endl;
     initialize();
@@ -355,22 +417,83 @@ void Wave<Dim, Order>::run()
     exportResults();
 }
 
-// Time loop
-template <int Dim, int Order>
-void Wave<Dim, Order>::timeLoop()
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order,OrderGeo>::processWavelet(form1_type& l, form2_type& a, double t, int it)
 {
+    if ( specs_["/Models/wave"_json_pointer].contains("loading"))
+    {
+        for ( auto [key, loading] : specs_["/Models/wave/loading"_json_pointer].items() )
+        {
+            LOG( INFO ) << fmt::format( "Loading {} found", key );
+            std::string loadtype = fmt::format( "/Models/wave/loading/{}/type", key );
+            if (specs_[nl::json::json_pointer( loadtype )].get<std::string>() == "Wavelet")
+            {
+                LOG( INFO ) << fmt::format( "Dirichlet conditions found" );
+                std::string loadexpr = fmt::format( "/Models/wave/loading/{}/parameters/expr", key );
+                // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
+                double force = wavelet(t);
+                std::cout << "force: " << force << std::endl;
+                std::string e = "{";
+                // for (int i = 0; i < FEELPP_DIM-1;i++)
+                // {
+                //     e.append("0,");
+                // }
+                e.append(std::to_string(wavelet(t)));
+                e.append("}");
+                std::cout << e << std::endl;
+                // TODO: invert e and p, e is the expression of the force and p is the position of the force
+                auto loadpos = fmt::format( "/Models/wave/loading/{}/parameters/location", key );
+                std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
+                node_type n(p.size());
+                for (int i = 0; i < p.size(); i++)
+                    n(i) = p[i];
+                auto dirac = std::make_shared<SensorPointwise<space_t>>(Xh_, n, key, e);
+                auto f = form1( _test = Xh_, _vector = dirac->containerPtr() );
+                l += f;
+            }
+        }
+    }
+}
+
+// Time loop
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order, OrderGeo>::timeLoop()
+{
+    int it = 0;
     // time loop
     for ( bdf_->start(); bdf_->isFinished()==false; bdf_->next(u_) )
     {
         // std::cout << "Time " << bdf_->time() << std::endl;
 
         at_ += integrate( _range = elements(mesh_), _expr = (1/mu) * idt(u_) * id(v_) );
+        if (abc)
+        {
+            at_ += integrate( _range = markedfaces( mesh_, "ABC" ), _expr = expr(bdf_->timeStep()) * idt(u_) * id(v_) / 2.);
+        }
         auto un = bdf_->unknown(0);
         auto un_1 = bdf_->unknown(1);
         lt_ += integrate( _range = elements(mesh_),
                           _expr = (1/mu) * (2 * idv(un) - idv(un_1) ) * id(v_)
                           + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * ((-1)/mu) * inner(gradv(un), grad(v_))
                           + expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * s * id(v_));
+        if (bat)
+        {
+            lt_ += integrate( _range = elements(mesh_,"Bat"),
+                          _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * dnv(un) * id(v_));
+        }
+
+        if (abc)
+        {
+            if (circle)
+            {
+                lt_ += integrate( _range = markedfaces( mesh_, "ABC" ),
+                                  _expr = - expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * idv(un) * id(v_) / 2.
+                                  + expr(bdf_->timeStep()) * idv(un_1)*id(v_)/2.);
+            }
+            else
+                lt_ += integrate( _range = markedfaces( mesh_, "ABC" ),
+                                  _expr = - expr(bdf_->timeStep()) * idv(un_1) * id(v_) / 2.);
+        }
         // add dirac
         if ( dirac )
         {
@@ -378,7 +501,13 @@ void Wave<Dim, Order>::timeLoop()
             tmp_l.scale(bdf_->timeStep() * bdf_->timeStep() / 2);
             lt_ += tmp_l;
         }
-        lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * (1/rho) * g * id(v_));
+        if (gamma)
+        {
+            lt_ += integrate( _range = markedfaces(mesh_, "Gamma"), _expr = expr(bdf_->timeStep()) * expr(bdf_->timeStep()) * (1/rho) * g * id(v_));
+        }
+
+        processWavelet(lt_, at_, bdf_->time(), it);
+        it++;
 
         at_.solve( _rhs = lt_, _solution = u_ );
 
@@ -390,11 +519,13 @@ void Wave<Dim, Order>::timeLoop()
 }
 
 // Export results
-template <int Dim, int Order>
-void Wave<Dim, Order>::exportResults()
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order, OrderGeo>::exportResults()
 {
+    // auto u_thin = Ih_->interpolate(u_);
+    auto u_thin = Ih_(u_);
     e_->step(bdf_->time())->addRegions();
-    e_->step(bdf_->time())->add("u", u_);
+    e_->step(bdf_->time())->add("u", u_thin);
     e_->save();
 
 
@@ -429,8 +560,8 @@ void Wave<Dim, Order>::exportResults()
     }
     
 }
-template <int Dim, int Order>
-void Wave<Dim, Order>::writeResultsToFile(const std::string& filename) const
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order, OrderGeo>::writeResultsToFile(const std::string& filename) const
 {
     std::ofstream file(filename);
     if (file.is_open()) {
@@ -442,8 +573,8 @@ void Wave<Dim, Order>::writeResultsToFile(const std::string& filename) const
 }
 
 // Summary method
-template <int Dim, int Order>
-void Wave<Dim, Order>::summary(/*arguments*/) {
+template <int Dim, int Order, int OrderGeo>
+void Wave<Dim,Order, OrderGeo>::summary(/*arguments*/) {
     /* ... summary code ... */
 }
 

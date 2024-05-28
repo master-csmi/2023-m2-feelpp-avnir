@@ -4,6 +4,16 @@
     "Models": {
         "wave": {
             "name": "Omega"
+            // "loading": {
+            //     "F1": {
+            //         "type" : "Wavelet",
+            //         "parameters" : {
+            //             "expr": "{1,0,0}", // {1e5,0}
+            //             "unit": "N",
+            //             "location": [5.0,5.0]
+            //         }
+            //     }
+            // }
         }
     },
     "Meshes": {
@@ -30,7 +40,7 @@
             "order" : 2,
             "start": 0.0,
             "end": 4,
-            "step": 0.0075
+            "step": 0.01
         }
     },
     "InitialConditions": {
@@ -38,13 +48,16 @@
             "pressure": {
                 "Expression": {
                     "Omega": {
+                        // "expr": "1.0*exp(-((x-5.0)^2+(y-5.0)^2)/10):x:y"
                         "expr": "0.3*exp(-((x-1.0)^2+(y-1.0)^2)/(2*0.05^2)):x:y"
+                        // "expr": "0.0"
                     }
                 }
             },
             "velocity": {
                 "Expression": {
                     "Omega": {
+                        // "expr": "1.0*exp(-((x-5.0)^2+(y-5.0)^2)/10):x:y"
                         "expr": "0.0"
                     }
                 }
@@ -62,10 +75,11 @@
     },
     "Parameters": {
         "wave": {
-            "c": 1.0,
+            "c": 1,
             "rho": "1.0",
             "mu": "1.0",
-            "s": "0.0"
+            "s": "0.0",
+            "abc":"square"
         }
     }
 }
