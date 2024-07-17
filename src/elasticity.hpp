@@ -51,7 +51,7 @@
 
 namespace Feel
 {
-inline const int FEELPP_DIM=2;
+inline const int FEELPP_DIM=3;
 inline const int FEELPP_ORDER=3;
 
 static inline const bool do_print = true;
@@ -676,6 +676,7 @@ void Elastic<Dim, Order>::timeLoop()
             lt_ +=  integrate( _range=markedelements( mesh_, material.get<std::string>() ), _expr= rho*inner( idv(ts_->polyDeriv()),id( v_ ) ) );
         }
 
+        //TODO: Try to comment processBoundaryConditions
         processBoundaryConditions(lt_, at_,ts_->time(),it);
 
         at_.solve( _rhs = lt_, _solution = u_ );
