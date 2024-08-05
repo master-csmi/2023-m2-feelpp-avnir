@@ -91,7 +91,8 @@
         "*.ipp": "cpp",
         "core": "cpp",
         "specialfunctions": "cpp",
-        "splines": "cpp"
+        "splines": "cpp",
+        "__nullptr": "cpp"
     },
     "asciidoc.antora.enableAntoraSupport": true,
 }

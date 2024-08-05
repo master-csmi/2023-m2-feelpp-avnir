@@ -51,7 +51,7 @@
 
 namespace Feel
 {
-inline const int FEELPP_DIM=3;
+inline const int FEELPP_DIM=2;
 inline const int FEELPP_ORDER=3;
 
 static inline const bool do_print = true;
@@ -451,14 +451,29 @@ void Elastic<Dim, Order>::processLoading(form1_type& l)
                 std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
                 // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
                 double force = wavelet(0);
-                std::string e = "{";
-                for (int i = 0; i < FEELPP_DIM-1;i++)
+                if (FEELPP_DIM==3)
                 {
-                    e.append("0,");
+                    std::string e = "{";
+                    for (int i = 0; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append(std::to_string(wavelet(0)));
+                    e.append("}");
                 }
-                e.append(std::to_string(wavelet(0)));
-                e.append("}");
-                // std::cout << e << std::endl;
+                else
+                {
+                    std::string e = "{";
+                    e.append(std::to_string(wavelet(0)));
+                    for (int i = 1; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append("0");
+                    e.append("}");
+                    // std::cout << e << std::endl;
+                }
+                std::cout << e << std::endl;
                 // TODO: invert e and p, e is the expression of the force and p is the position of the force
                 auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
                 std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
@@ -540,13 +555,28 @@ void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a
                 std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
                 // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
                 double force = wavelet(t);
-                std::string e = "{";
-                for (int i = 0; i < FEELPP_DIM-1;i++)
+                if (FEELPP_DIM==3)
                 {
-                    e.append("0,");
+                    std::string e = "{";
+                    for (int i = 0; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append(std::to_string(force));
+                    e.append("}");
                 }
-                e.append(std::to_string(wavelet(t)));
-                e.append("}");
+                else
+                {
+                    std::string e = "{";
+                    e.append(std::to_string(force));
+                    for (int i = 1; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append("0");
+                    e.append("}");
+                    std::cout << e << std::endl;
+                }
                 // std::cout << e << std::endl;
                 // TODO: invert e and p, e is the expression of the force and p is the position of the force
                 auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
