@@ -73,7 +73,7 @@
             "Import": {
                 "filename": "$cfgdir/square.geo",
                 "partition": 0,
-                "h": 0.01
+                "h": 0.05
             }
         }
     },
@@ -91,7 +91,7 @@
             "steady": false,
             "order" : 2,
             "start": 0.0,
-            "end": 2e-4,
+            "end": 2e-3,
             "step": 2e-6
             // "end": 1.0,
             // "step": 1.95e-5

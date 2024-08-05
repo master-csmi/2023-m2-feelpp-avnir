@@ -30,6 +30,9 @@
 #include <feel/feelcore/ptreetools.hpp>
 #include <feel/feelcore/utility.hpp>
 #include <feel/feeldiscr/pch.hpp>
+#include <feel/feeldiscr/odh.hpp>
+#include <feel/feeldiscr/dh.hpp>
+#include <feel/feeldiscr/nch.hpp>
 #include <feel/feeldiscr/minmax.hpp>
 #include <feel/feeldiscr/sensors.hpp>
 #include <feel/feelfilters/exporter.hpp>
@@ -38,6 +41,10 @@
 #include <feel/feelvf/vf.hpp>
 #include <feel/feelvf/measure.hpp>
 #include <feel/feelts/newmark.hpp>
+#include <feel/feelpoly/dubiner.hpp>
+#include <feel/feelpoly/lagrange.hpp>
+#include <feel/feelpoly/raviartthomas.hpp>
+#include <feel/feelpoly/legendre.hpp>
 #include "wavelet.hpp"
 #include <typeinfo>
 
@@ -216,10 +223,12 @@ void Elastic<Dim, Order>::initialize()
     mesh_thin_ = loadMesh( _mesh = new mesh_t, _filename = specs_["/Meshes/elastic/Import/filename"_json_pointer].get<std::string>(), _h = H);
     // define Xh on a marked region
     if ( specs_["/Spaces/elastic/Domain"_json_pointer].contains("marker") )
-        Xh_ = Pchv<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/elastic/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
+        std::cout << "marker" << std::endl;
+        // Xh_ = Pchv<Order>(mesh_, markedelements(mesh_, specs_["/Spaces/elastic/Domain/marker"_json_pointer].get<std::vector<std::string>>()));
     // define Xh via a levelset phi where phi < 0 defines the Domain and phi = 0 the boundary
     else if (specs_["/Spaces/elastic/Domain"_json_pointer].contains("levelset"))
-        Xh_ = Pchv<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/elastic/Domain/levelset"_json_pointer].get<std::string>())));
+        std::cout << "levelset" << std::endl;
+        // Xh_ = Pchv<Order>(mesh_, elements(mesh_, expr(specs_["/Spaces/elastic/Domain/levelset"_json_pointer].get<std::string>())));
     // define Xh on the whole mesh
     else
         Xh_ = Pchv<Order>(mesh_); // Pchv : vectoriel
@@ -442,14 +451,29 @@ void Elastic<Dim, Order>::processLoading(form1_type& l)
                 std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
                 // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
                 double force = wavelet(0);
-                std::string e = "{";
-                for (int i = 0; i < FEELPP_DIM-1;i++)
+                if (FEELPP_DIM==3)
                 {
-                    e.append("0,");
+                    std::string e = "{";
+                    for (int i = 0; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append(std::to_string(wavelet(0)));
+                    e.append("}");
                 }
-                e.append(std::to_string(wavelet(0)));
-                e.append("}");
-                // std::cout << e << std::endl;
+                else
+                {
+                    std::string e = "{";
+                    e.append(std::to_string(wavelet(0)));
+                    for (int i = 1; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append("0");
+                    e.append("}");
+                    // std::cout << e << std::endl;
+                }
+                std::cout << e << std::endl;
                 // TODO: invert e and p, e is the expression of the force and p is the position of the force
                 auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
                 std::vector<double> p = specs_[nl::json::json_pointer( loadpos )].get<std::vector<double>>();
@@ -531,13 +555,28 @@ void Elastic<Dim, Order>::processBoundaryConditions(form1_type& l, form2_type& a
                 std::string loadexpr = fmt::format( "/Models/elastic/loading/{}/parameters/expr", key );
                 // auto e = specs_[nl::json::json_pointer( loadexpr )].get<std::string>();
                 double force = wavelet(t);
-                std::string e = "{";
-                for (int i = 0; i < FEELPP_DIM-1;i++)
+                if (FEELPP_DIM==3)
                 {
-                    e.append("0,");
+                    std::string e = "{";
+                    for (int i = 0; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append(std::to_string(force));
+                    e.append("}");
                 }
-                e.append(std::to_string(wavelet(t)));
-                e.append("}");
+                else
+                {
+                    std::string e = "{";
+                    e.append(std::to_string(force));
+                    for (int i = 1; i < FEELPP_DIM-1;i++)
+                    {
+                        e.append("0,");
+                    }
+                    e.append("0");
+                    e.append("}");
+                    std::cout << e << std::endl;
+                }
                 // std::cout << e << std::endl;
                 // TODO: invert e and p, e is the expression of the force and p is the position of the force
                 auto loadpos = fmt::format( "/Models/elastic/loading/{}/parameters/location", key );
@@ -667,6 +706,7 @@ void Elastic<Dim, Order>::timeLoop()
             lt_ +=  integrate( _range=markedelements( mesh_, material.get<std::string>() ), _expr= rho*inner( idv(ts_->polyDeriv()),id( v_ ) ) );
         }
 
+        //TODO: Try to comment processBoundaryConditions
         processBoundaryConditions(lt_, at_,ts_->time(),it);
 
         at_.solve( _rhs = lt_, _solution = u_ );
